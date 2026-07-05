@@ -2,16 +2,23 @@ import type { Metadata } from 'next'
 
 import type { Page, Product } from '../payload-types'
 
+import { getServerSideURL } from './getURL'
 import { mergeOpenGraph } from './mergeOpenGraph'
 
 export const generateMeta = async (args: { doc: Page | Product }): Promise<Metadata> => {
   const { doc } = args || {}
 
-  const ogImage =
+  const ogImageURL =
     typeof doc?.meta?.image === 'object' &&
     doc.meta.image !== null &&
     'url' in doc.meta.image &&
-    `${process.env.NEXT_PUBLIC_SERVER_URL}${doc.meta.image.url}`
+    doc.meta.image.url
+
+  const ogImage = ogImageURL
+    ? ogImageURL.startsWith('http')
+      ? ogImageURL
+      : `${getServerSideURL()}${ogImageURL}`
+    : undefined
 
   return {
     description: doc?.meta?.description,

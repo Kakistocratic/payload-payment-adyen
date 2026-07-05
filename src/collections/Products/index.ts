@@ -155,7 +155,7 @@ export const ProductsCollection: CollectionOverride = ({ defaultCollection }) =>
                   }
                 }
 
-                // ID comes back as undefined during seeding so we need to handle that case
+                // ID can be undefined while creating a new product, so keep all products selectable.
                 return {
                   id: {
                     exists: true,
