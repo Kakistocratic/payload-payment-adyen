@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   getAdyenHMACPayload,
   getAdyenSessionsURL,
+  getShopperReference,
   validateStandardNotificationHMAC,
 } from '@/plugins/adyen/utilities'
 import type { AdyenNotificationRequestItem } from '@/plugins/adyen/types'
@@ -65,5 +66,10 @@ describe('Adyen utilities', () => {
       }),
     ).toBe('https://example-checkout-live.adyenpayments.com/checkout/v71/sessions')
   })
-})
 
+  it('prefixes Payload user IDs for Adyen shopperReference compatibility', () => {
+    expect(getShopperReference(1)).toBe('user-1')
+    expect(getShopperReference('ab')).toBe('user-ab')
+    expect(getShopperReference(undefined)).toBeUndefined()
+  })
+})

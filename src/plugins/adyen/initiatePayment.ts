@@ -1,7 +1,7 @@
 import type { PaymentAdapter } from '@payloadcms/plugin-ecommerce/types'
 
 import type { AdyenAdapterArgs, AdyenSessionResponse } from './types'
-import { flattenCartItems, getAdyenSessionsURL } from './utilities'
+import { flattenCartItems, getAdyenSessionsURL, getShopperReference } from './utilities'
 
 type InitiatePayment = PaymentAdapter['initiatePayment']
 
@@ -61,7 +61,7 @@ export const initiatePayment =
           reference: merchantReference,
           returnUrl,
           shopperEmail: customerEmail,
-          shopperReference: req.user?.id ? String(req.user.id) : undefined,
+          shopperReference: getShopperReference(req.user?.id),
         }),
         headers: {
           'content-type': 'application/json',

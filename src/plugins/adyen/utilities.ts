@@ -67,6 +67,14 @@ export const flattenCartItems = (items: NonNullable<unknown[]>) => {
   })
 }
 
+export const getShopperReference = (userID: unknown) => {
+  if (userID === undefined || userID === null || userID === '') {
+    return undefined
+  }
+
+  return `user-${String(userID)}`
+}
+
 export const getAdyenHMACPayload = (notification: AdyenNotificationRequestItem) => {
   return [
     notification.pspReference,
@@ -108,4 +116,3 @@ export const validateStandardNotificationHMAC = ({
 
   return timingSafeEqual(expected, calculated)
 }
-
