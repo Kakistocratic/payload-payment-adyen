@@ -1,374 +1,391 @@
-# Payload Ecommerce Template
+# Payload Ecommerce Adyen Adapter
 
-This template is in **BETA**.
+This project is a Payload Ecommerce Starter fork used to build and test an Adyen payment adapter.
 
-This is the official [Payload Ecommerce Template](https://github.com/payloadcms/payload/blob/3.x/templates/ecommerce). This repo includes a fully-working backend, enterprise-grade admin panel, and a beautifully designed, production-ready ecommerce website.
+The adapter currently lives inside the starter app at `src/plugins/adyen`. The long-term goal is to extract it into a standalone Payload payment adapter package after the checkout, webhook, and admin payment-operation flows have settled.
 
-This template is right for you if you are working on building an ecommerce project or shop with Payload.
+## Current Status
 
-Core features:
+Implemented:
 
-- [Pre-configured Payload Config](#how-it-works)
-- [Authentication](#users-authentication)
-- [Access Control](#access-control)
-- [Layout Builder](#layout-builder)
-- [Draft Preview](#draft-preview)
-- [Live Preview](#live-preview)
-- [On-demand Revalidation](#on-demand-revalidation)
-- [SEO](#seo)
-- [Search & Filters](#search)
-- [Jobs and Scheduled Publishing](#jobs-and-scheduled-publish)
-- [Website](#website)
-- [Products & Variants](#products-and-variants)
-- [User accounts](#user-accounts)
-- [Carts](#carts)
-- [Guest checkout](#guests)
-- [Orders & Transactions](#orders-and-transactions)
-- [Stripe Payments](#stripe)
-- [Currencies](#currencies)
-- [Automated Tests](#tests)
+- Adyen Sessions API checkout flow.
+- Adyen Web Drop-in on the storefront checkout page.
+- Card payment completion, including 3D Secure.
+- Redirect-return handling for payment methods that leave the checkout page.
+- Standard webhook endpoint with optional HMAC verification.
+- Webhook-owned order completion for successful `AUTHORISATION` events.
+- Idempotent browser and webhook order confirmation.
+- Failed/refused/cancelled outcome recording.
+- Shopper locale forwarding and Drop-in translation plumbing.
+- Optional forced redirect 3DS mode.
+- Admin-only capture, refund, and cancel endpoints.
+- Adyen metadata fields on Payload transactions.
+- Focused integration tests for utilities, order completion, and modification endpoint access.
 
-## Quick Start
+Not finished:
 
-To spin up this example locally, follow these steps:
+- Extraction into a standalone npm package.
+- Full live Adyen E2E coverage in CI.
+- Admin UI buttons for capture/refund/cancel. The endpoints exist, but there is not yet a custom Payload admin action UI.
+- Cleanup of unrelated starter TypeScript errors.
 
-### Clone
+## Relevant Files
 
-If you have not done so already, you need to have standalone copy of this repo on your machine. If you've already cloned this repo, skip to [Development](#development).
+- `src/plugins/adyen/index.ts`: adapter registration, transaction metadata fields, and endpoint registration.
+- `src/plugins/adyen/initiatePayment.ts`: creates Adyen Sessions and Payload transactions.
+- `src/plugins/adyen/confirmOrder.ts`: browser-return order confirmation.
+- `src/plugins/adyen/completeOrder.ts`: shared idempotent order creation used by browser return and webhooks.
+- `src/plugins/adyen/endpoints/webhooks.ts`: Standard webhook handling, HMAC validation, transaction reconciliation.
+- `src/plugins/adyen/endpoints/outcome.ts`: records failed or refused in-page outcomes.
+- `src/plugins/adyen/endpoints/modifyPayment.ts`: admin-only capture/refund/cancel endpoints.
+- `src/components/forms/AdyenCheckoutForm/index.tsx`: Adyen Web Drop-in integration.
+- `src/components/checkout/ConfirmOrder.tsx`: redirect-return handler.
+- `src/components/checkout/CheckoutPage.tsx`: checkout flow wired to `initiatePayment('adyen')`.
+- `src/providers/index.tsx`: client-side payment adapter registration.
 
-Use the `create-payload-app` CLI to clone this template directly to your machine:
+## Environment Variables
 
-```bash
-pnpx create-payload-app my-project -t ecommerce
+Copy `.env.example` to `.env` and fill in the Adyen values.
+
+```env
+ADYEN_API_KEY=
+ADYEN_MERCHANT_ACCOUNT=
+ADYEN_ENVIRONMENT=test
+ADYEN_HMAC_KEY=
+ADYEN_LIVE_ENDPOINT_URL_PREFIX=
+ADYEN_FORCE_REDIRECT_3DS=false
+
+NEXT_PUBLIC_ADYEN_CLIENT_KEY=
+NEXT_PUBLIC_ADYEN_ENVIRONMENT=test
+NEXT_PUBLIC_SERVER_URL=http://localhost:3000
 ```
 
-### Development
+### Variable Reference
 
-1. First [clone the repo](#clone) if you have not done so already
-1. `cd my-project && cp .env.example .env` to copy the example environment variables
-1. `pnpm install && pnpm dev` to install dependencies and start the dev server
-1. open `http://localhost:3000` to open the app in your browser
+| Variable | Required | Notes |
+| --- | --- | --- |
+| `ADYEN_API_KEY` | Yes | Server-side Adyen API key. Never expose this to the browser. |
+| `ADYEN_MERCHANT_ACCOUNT` | Yes | Merchant account used for Sessions and payment modifications. |
+| `ADYEN_ENVIRONMENT` | Yes | `test` or `live`. Defaults to `test` in project config. |
+| `ADYEN_HMAC_KEY` | Recommended | Standard webhook HMAC key. If omitted, webhook HMAC validation is skipped. |
+| `ADYEN_LIVE_ENDPOINT_URL_PREFIX` | Live only | Required by Adyen for live Checkout API URLs. |
+| `ADYEN_FORCE_REDIRECT_3DS` | Optional | Set to `true` to request redirect 3DS by sending `nativeThreeDS: "disabled"`. |
+| `NEXT_PUBLIC_ADYEN_CLIENT_KEY` | Yes | Browser-safe client key used by Adyen Web Drop-in. |
+| `NEXT_PUBLIC_ADYEN_ENVIRONMENT` | Yes | `test` or `live` for Adyen Web. |
+| `NEXT_PUBLIC_SERVER_URL` | Yes | Used to build the Adyen `returnUrl` when no explicit `returnURL` is passed. |
 
-That's it! Changes made in `./src` will be reflected in your app. Follow the on-screen instructions to login and create your first admin user. Then check out [Production](#production) once you're ready to build and serve your app, and [Deployment](#deployment) when you're ready to go live.
+Stripe variables are still present because the starter still includes the Stripe adapter.
 
-## How it works
+## Adyen Account Setup
 
-The Payload config is tailored specifically to the needs of most websites. It is pre-configured in the following ways:
+In the Adyen Customer Area:
 
-### Collections
+1. Create or use an API credential with Checkout API permissions.
+2. Add the allowed origin for your frontend, for example `http://localhost:3000`.
+3. Copy the client key into `NEXT_PUBLIC_ADYEN_CLIENT_KEY`.
+4. Enable the payment methods you want to test.
+5. Configure a Standard webhook pointing to:
 
-See the [Collections](https://payloadcms.com/docs/configuration/collections) docs for details on how to extend this functionality.
+```text
+https://your-public-host.example.com/api/payments/adyen/webhooks
+```
 
-- #### Users (Authentication)
+For local testing, expose your dev server with a tunnel such as ngrok or Cloudflare Tunnel and use that public URL in Adyen.
 
-  Users are auth-enabled collections that have access to the admin panel and unpublished content. See [Access Control](#access-control) for more details.
+Enable HMAC signing for the Standard webhook and put the generated HMAC key in `ADYEN_HMAC_KEY`.
 
-  For additional help, see the official [Auth Example](https://github.com/payloadcms/payload/tree/3.x/examples/auth) or the [Authentication](https://payloadcms.com/docs/authentication/overview#authentication-overview) docs.
+Useful Adyen docs:
 
-- #### Pages
+- [Sessions flow](https://docs.adyen.com/online-payments/build-your-integration/sessions-flow/)
+- [Web Drop-in](https://docs.adyen.com/online-payments/web-drop-in/)
+- [Standard webhooks](https://docs.adyen.com/development-resources/webhooks/)
+- [HMAC webhook verification](https://docs.adyen.com/development-resources/webhooks/secure-webhooks/verify-hmac-signatures/)
+- [Capture](https://docs.adyen.com/online-payments/capture/)
+- [Refund](https://docs.adyen.com/online-payments/refund/)
+- [Cancel](https://docs.adyen.com/online-payments/cancel/)
 
-  All pages are layout builder enabled so you can generate unique layouts for each page using layout-building blocks, see [Layout Builder](#layout-builder) for more details. Pages are also draft-enabled so you can preview them before publishing them to your website, see [Draft Preview](#draft-preview) for more details.
+## Running Locally
 
-- #### Media
+Install dependencies:
 
-  This is the uploads enabled collection used by pages, posts, and projects to contain media like images, videos, downloads, and other assets. It features pre-configured sizes, focal point and manual resizing to help you manage your pictures.
+```bash
+pnpm install
+```
 
-- #### Categories
+Start the app:
 
-  A taxonomy used to group products together.
+```bash
+pnpm dev
+```
 
-- ### Carts
+Open:
 
-  Used to track user and guest carts within Payload. Added by the [ecommerce plugin](https://payloadcms.com/docs/ecommerce/plugin#carts).
+```text
+http://localhost:3000
+```
 
-- ### Addresses
+Create the first admin user through the Payload admin onboarding flow.
 
-  Saves user's addresses for easier checkout. Added by the [ecommerce plugin](https://payloadcms.com/docs/ecommerce/plugin#addresses).
+## Checkout Flow
 
-- ### Orders
+The storefront checkout currently uses Adyen:
 
-  Tracks orders once a transaction successfully completes. Added by the [ecommerce plugin](https://payloadcms.com/docs/ecommerce/plugin#orders).
+1. Shopper enters contact and address details.
+2. Checkout calls `initiatePayment('adyen')`.
+3. The server creates an Adyen Session.
+4. The server creates a Payload transaction with Adyen metadata.
+5. The browser mounts Adyen Web Drop-in using the returned session ID and session data.
+6. Drop-in completes in-page, or redirects away and returns to `/checkout/confirm-order`.
+7. Successful completion creates a Payload order and links the transaction.
+8. Adyen webhooks reconcile the transaction, and can also create the order if the browser never returns.
 
-- ### Transactions
+The adapter stores Adyen metadata under the `adyen` group on transactions, including:
 
-  Tracks transactions from initiation to completion, once completed they will have a related Order item. Added by the [ecommerce plugin](https://payloadcms.com/docs/ecommerce/plugin#transactions).
+- `sessionID`
+- `merchantReference`
+- `pspReference`
+- `resultCode`
+- `sessionResult`
+- `shopperLocale`
+- `paymentMethod`
+- `eventCode`
+- modification PSP references for capture/refund/cancel
 
-- ### Products and Variants
+## Redirect Returns
 
-  Primary collections for product details such as pricing per currency and optionally supports variants per product. Added by the [ecommerce plugin](https://payloadcms.com/docs/ecommerce/plugin#products).
+Redirect-based payment methods return to:
 
-### Globals
+```text
+/checkout/confirm-order?sessionId=...&redirectResult=...
+```
 
-See the [Globals](https://payloadcms.com/docs/configuration/globals) docs for details on how to extend this functionality.
+The confirm page calls Adyen Web `submitDetails` and then confirms the Payload order through the ecommerce payment API.
 
-- `Header`
+For guest checkouts, browser-only return context such as email and shipping address is stored in `sessionStorage`. The `returnUrl` itself does not contain PII.
 
-  The data required by the header on your front-end like nav links.
+Webhook completion does not depend on `sessionStorage`. The server persists the shipping address on the transaction when the Adyen Session is created, so a successful authorization webhook can still create the order if the shopper closes the browser before returning.
 
-- `Footer`
+## Webhooks
 
-  Same as above but for the footer of your site.
+Endpoint:
 
-## Access control
+```text
+POST /api/payments/adyen/webhooks
+```
 
-Basic access control is setup to limit access to various content based based on publishing status.
+The endpoint accepts Adyen Standard webhook payloads.
 
-- `users`: Users with the `admin` role can access the admin panel and create or edit content, users with the `customer` role can only access the frontend and the relevant collection items to themselves.
-- `pages`: Everyone can access published pages, but only admin users can create, update, or delete them.
-- `products` `variants`: Everyone can access published products, but only admin users can create, update, or delete them.
-- `carts`: Customers can access their own saved cart, guest users can access any unclaimed cart by ID.
-- `addresses`: Customers can access their own addresses for record keeping.
-- `transactions`: Only admins can access these as they're meant for internal tracking.
-- `orders`: Only admins and users who own the orders can access these. Guests require a valid `accessToken` (sent via email) along with the order's email to view order details.
+Handled event codes include:
 
-For more details on how to extend this functionality, see the [Payload Access Control](https://payloadcms.com/docs/access-control/overview#access-control) docs.
+- `AUTHORISATION`
+- `CAPTURE`
+- `CAPTURE_FAILED`
+- `REFUND`
+- `REFUND_FAILED`
+- `REFUNDED_REVERSED`
+- `CANCELLATION`
+- `TECHNICAL_CANCEL`
 
-## User accounts
+`AUTHORISATION` with `success: "true"` is authoritative for successful payment. It updates the transaction and creates the order if needed.
 
-Registered users can log in to view their order history, manage saved addresses, and track ongoing orders directly from their account dashboard.
+Duplicate browser returns and duplicate webhook delivery are expected. The order creation path is idempotent and will not create a second order or decrement inventory twice.
 
-## Guests
+## Payment Modifications
 
-Guest checkout allows users to complete purchases without creating an account. When a guest places an order:
+The adapter exposes admin-only endpoints for post-payment operations:
 
-1. The order is associated with their email address
-2. A unique `accessToken` is generated for secure order lookup
-3. An order confirmation email is sent containing a secure link to view the order
+```text
+POST /api/payments/adyen/transactions/:transactionID/capture
+POST /api/payments/adyen/transactions/:transactionID/refund
+POST /api/payments/adyen/transactions/:transactionID/cancel
+```
 
-To look up an order as a guest, users visit `/find-order`, enter their email and order ID, and receive an email with a secure access link. This prevents order enumeration attacks where malicious users could iterate through sequential order IDs to access other customers' order information.
+These endpoints require an authenticated Payload user with the `admin` role.
 
-## Layout Builder
+### Capture
 
-Create unique page layouts for any type of content using a powerful layout builder. This template comes pre-configured with the following layout building blocks:
+Capture is for authorized payments that have not already been auto-captured.
 
-- Hero
-- Content
-- Media
-- Call To Action
-- Archive
+```http
+POST /api/payments/adyen/transactions/123/capture
+Content-Type: application/json
 
-Each block is fully designed and built into the front-end website that comes with this template. See [Website](#website) for more details.
+{
+  "amount": {
+    "currency": "EUR",
+    "value": 1000
+  },
+  "reference": "capture-123"
+}
+```
 
-## Lexical editor
+If `amount` is omitted, the transaction amount is used.
 
-A deep editorial experience that allows complete freedom to focus just on writing content without breaking out of the flow with support for Payload blocks, media, links and other features provided out of the box. See [Lexical](https://payloadcms.com/docs/rich-text/overview) docs.
+### Refund
 
-## Draft Preview
+Refund is for captured payments.
 
-All products and pages are draft-enabled so you can preview them before publishing them to your website. To do this, these collections use [Versions](https://payloadcms.com/docs/configuration/collections#versions) with `drafts` set to `true`. This means that when you create a new product or page, it will be saved as a draft and will not be visible on your website until you publish it. This also means that you can preview your draft before publishing it to your website. To do this, we automatically format a custom URL which redirects to your front-end to securely fetch the draft version of your content.
+```http
+POST /api/payments/adyen/transactions/123/refund
+Content-Type: application/json
 
-Since the front-end of this template is statically generated, this also means that pages, products, and projects will need to be regenerated as changes are made to published documents. To do this, we use an `afterChange` hook to regenerate the front-end when a document has changed and its `_status` is `published`.
+{
+  "amount": {
+    "currency": "EUR",
+    "value": 1000
+  },
+  "reference": "refund-123",
+  "merchantRefundReason": "CUSTOMER REQUEST"
+}
+```
 
-For more details on how to extend this functionality, see the official [Draft Preview Example](https://github.com/payloadcms/payload/tree/3.x/examples/draft-preview).
+If `amount` is omitted, the transaction amount is used.
 
-## Live preview
+### Cancel
 
-In addition to draft previews you can also enable live preview to view your end resulting page as you're editing content with full support for SSR rendering. See [Live preview docs](https://payloadcms.com/docs/live-preview/overview) for more details.
+Cancel is for authorized payments that have not been captured.
 
-## On-demand Revalidation
+```http
+POST /api/payments/adyen/transactions/123/cancel
+Content-Type: application/json
 
-We've added hooks to collections and globals so that all of your pages, products, footer, or header changes will automatically be updated in the frontend via on-demand revalidation supported by Nextjs.
+{
+  "reference": "cancel-123"
+}
+```
 
-> Note: if an image has been changed, for example it's been cropped, you will need to republish the page it's used on in order to be able to revalidate the Nextjs image cache.
+### Modification Lifecycle
 
-## SEO
+Adyen modification requests are asynchronous. A successful endpoint response means Adyen accepted the request for processing. The final result comes through webhooks.
 
-This template comes pre-configured with the official [Payload SEO Plugin](https://payloadcms.com/docs/plugins/seo) for complete SEO control from the admin panel. All SEO data is fully integrated into the front-end website that comes with this template. See [Website](#website) for more details.
+Normal lifecycle:
 
-## Search
+- Use `capture` after authorization when manual capture is enabled.
+- Use `cancel` before capture.
+- Use `refund` after capture.
+- Treat Adyen webhooks as the source of truth for final operation status.
 
-This template comes with SSR search features can easily be implemented into Next.js with Payload. See [Website](#website) for more details.
+## 3D Secure Testing
 
-## Orders and Transactions
+3D Secure is a good redirect/additional-auth test case.
 
-Transactions are intended for keeping a record of any payment made, as such it will contain information regarding an order or billing address used or the payment method used and amount. Only admins can access transactions.
+Common Adyen test cards:
 
-An order is created only once a transaction is successfully completed. This is a record that the user who completed the transaction has access so they can keep track of their history.
+```text
+Visa:       4917 6100 0000 0000
+Mastercard: 5454 5454 5454 5454
+Expiry:    03/2030
+CVC:       737
+Password:  password
+```
 
-### Guest Order Access
+Depending on Adyen configuration, 3DS can be native/in-page or redirect-based. To force redirect-style 3DS for testing, set:
 
-Guest users can securely access their orders through the `/find-order` page:
+```env
+ADYEN_FORCE_REDIRECT_3DS=true
+```
 
-1. Guest enters their email address and order ID
-2. If the order exists and matches the email, an access link is sent to their email
-3. The link contains a secure `accessToken` that grants temporary access to view the order
+Then restart the dev server.
 
-This email verification flow prevents unauthorized access to order details. The `accessToken` is a unique UUID generated when the order is created and is required (along with the email) to view order details as a guest.
+## iDEAL Testing
 
-**Security note:** Order confirmation emails should include the order ID so guests can use the "Find Order" feature. The access token is only sent via the verification email to prevent enumeration attacks.
+For iDEAL:
 
-## Currencies
+1. Enable iDEAL in your Adyen test account.
+2. Use country `NL` and currency `EUR`.
+3. Choose iDEAL in Drop-in.
+4. Use issuer `TESTNL2A`.
 
-By default the template ships with support only for USD however you can change the supported currencies via the [plugin configuration](https://payloadcms.com/docs/ecommerce/plugin#currencies). You will need to ensure that the supported currencies in Payload are also configured in your Payment platforms.
+iDEAL is country-specific, so it may not appear unless the checkout country/currency and merchant configuration match.
 
-## Stripe
+## Localization
 
-By default we ship with the Stripe adapter configured, so you'll need to setup the `secretKey`, `publishableKey` and `webhookSecret` from your Stripe dashboard. Follow [Stripe's guide](https://docs.stripe.com/get-started/api-request?locale=en-GB) on how to set this up.
+The checkout flow sends `shopperLocale` to Adyen Sessions and passes `locale` into Adyen Web.
+
+The adapter also supports a `translations` option:
+
+```ts
+adyenAdapter({
+  apiKey: process.env.ADYEN_API_KEY!,
+  clientKey: process.env.NEXT_PUBLIC_ADYEN_CLIENT_KEY!,
+  merchantAccount: process.env.ADYEN_MERCHANT_ACCOUNT!,
+  translations: {
+    'nb-NO': {
+      payButton: 'Betal',
+    },
+  },
+})
+```
+
+Payload admin translations and Adyen Drop-in translations are separate concerns. Payload localization does not automatically translate the Adyen iframe/component UI.
 
 ## Tests
 
-We provide automated tests out of the box for both E2E and Int tests along with this template. They are being run in our CI to ensure the stability of this template over time. You can integrate them into your CI or run them locally as well via:
-
-To run Int tests wtih Vitest:
+Run integration tests:
 
 ```bash
 pnpm test:int
 ```
 
-To run E2Es with Playwright:
+Current focused test coverage includes:
+
+- Adyen HMAC payload and validation.
+- Adyen Sessions and modification URL generation.
+- Shopper reference formatting.
+- Cart item flattening for transaction rows.
+- Idempotent Adyen order completion.
+- Admin-only modification endpoint access.
+
+Generate Payload types after schema changes:
 
 ```bash
-pnpm test:e2e
+pnpm generate:types
 ```
 
-or
+Run TypeScript:
 
 ```bash
-pnpm test
+pnpm exec tsc --noEmit
 ```
 
-To run both.
+At the time this README was written, the Adyen-specific TypeScript errors were resolved, but the starter still had unrelated baseline TypeScript errors in:
 
-## Jobs and Scheduled Publish
+- `src/components/Cart/CartModal.tsx`
+- `src/components/checkout/CheckoutPage.tsx`
+- `src/utilities/generatePreviewPath.ts`
 
-We have configured [Scheduled Publish](https://payloadcms.com/docs/versions/drafts#scheduled-publish) which uses the [jobs queue](https://payloadcms.com/docs/jobs-queue/jobs) in order to publish or unpublish your content on a scheduled time. The tasks are run on a cron schedule and can also be run as a separate instance if needed.
+## Production Notes
 
-> Note: When deployed on Vercel, depending on the plan tier, you may be limited to daily cron only.
+Before live use:
 
-## Website
+1. Use `ADYEN_ENVIRONMENT=live` and `NEXT_PUBLIC_ADYEN_ENVIRONMENT=live`.
+2. Set `ADYEN_LIVE_ENDPOINT_URL_PREFIX`.
+3. Use a live Adyen API key and live client key.
+4. Configure live allowed origins in Adyen.
+5. Configure the live Standard webhook with HMAC signing.
+6. Confirm webhook delivery from Adyen to your deployed Payload app.
+7. Verify currency minor-unit handling for every supported currency.
+8. Decide whether the merchant uses automatic capture or manual capture.
+9. Test refused, cancelled, redirect, webhook-only, refund, capture, and cancel scenarios.
 
-This template includes a beautifully designed, production-ready front-end built with the [Next.js App Router](https://nextjs.org), served right alongside your Payload app in a instance. This makes it so that you can deploy both your backend and website where you need it.
+## Extraction Plan
 
-Core features:
+The implementation should eventually move into a standalone package with a shape similar to:
 
-- [Next.js App Router](https://nextjs.org)
-- [TypeScript](https://www.typescriptlang.org)
-- [React Hook Form](https://react-hook-form.com)
-- [Payload Admin Bar](https://github.com/payloadcms/payload/tree/3.x/packages/admin-bar)
-- [TailwindCSS styling](https://tailwindcss.com/)
-- [shadcn/ui components](https://ui.shadcn.com/)
-- User Accounts and Authentication
-- Fully featured blog
-- Publication workflow
-- Dark mode
-- Pre-made layout building blocks
-- SEO
-- Search
-- Live preview
-- Stripe payments
-
-### Cache
-
-Although Next.js includes a robust set of caching strategies out of the box, Payload Cloud proxies and caches all files through Cloudflare using the [Official Cloud Plugin](https://www.npmjs.com/package/@payloadcms/payload-cloud). This means that Next.js caching is not needed and is disabled by default. If you are hosting your app outside of Payload Cloud, you can easily reenable the Next.js caching mechanisms by removing the `no-store` directive from all fetch requests in `./src/app/_api` and then removing all instances of `export const dynamic = 'force-dynamic'` from pages files, such as `./src/app/(pages)/[slug]/page.tsx`. For more details, see the official [Next.js Caching Docs](https://nextjs.org/docs/app/building-your-application/caching).
-
-## Development
-
-To spin up this example locally, follow the [Quick Start](#quick-start).
-
-### Working with Postgres
-
-Postgres and other SQL-based databases follow a strict schema for managing your data. In comparison to our MongoDB adapter, this means that there's a few extra steps to working with Postgres.
-
-Note that often times when making big schema changes you can run the risk of losing data if you're not manually migrating it.
-
-#### Local development
-
-Ideally we recommend running a local copy of your database so that schema updates are as fast as possible. By default the Postgres adapter has `push: true` for development environments. This will let you add, modify and remove fields and collections without needing to run any data migrations.
-
-If your database is pointed to production you will want to set `push: false` otherwise you will risk losing data or having your migrations out of sync.
-
-#### Migrations
-
-[Migrations](https://payloadcms.com/docs/database/migrations) are essentially SQL code versions that keeps track of your schema. When deploy with Postgres you will need to make sure you create and then run your migrations.
-
-Locally create a migration
-
-```bash
-pnpm payload migrate:create
+```text
+packages/
+  payload-payment-adyen/
+    src/
+      index.ts
+      client/
+      endpoints/
+      types.ts
 ```
 
-This creates the migration files you will need to push alongside with your new configuration.
+Before extraction:
 
-On the server after building and before running `pnpm start` you will want to run your migrations
-
-```bash
-pnpm payload migrate
-```
-
-This command will check for any migrations that have not yet been run and try to run them and it will keep a record of migrations that have been run in the database.
-
-### Docker
-
-Alternatively, you can use [Docker](https://www.docker.com) to spin up this template locally. To do so, follow these steps:
-
-1. Follow [steps 1 and 2 from above](#development), the docker-compose file will automatically use the `.env` file in your project root
-1. Next run `docker-compose up`
-1. Follow [steps 4 and 5 from above](#development) to login and create your first admin user
-
-That's it! The Docker instance will help you get up and running quickly while also standardizing the development environment across your teams.
-
-## Production
-
-To run Payload in production, you need to build and start the Admin panel. To do so, follow these steps:
-
-1. Invoke the `next build` script by running `pnpm build` or `npm run build` in your project root. This creates a `.next` directory with a production-ready admin bundle.
-1. Finally run `pnpm start` or `npm run start` to run Node in production and serve Payload from the `.build` directory.
-1. When you're ready to go live, see Deployment below for more details.
-
-### Deploying to Vercel
-
-This template can also be deployed to Vercel for free. You can get started by choosing the Vercel DB adapter during the setup of the template or by manually installing and configuring it:
-
-```bash
-pnpm add @payloadcms/db-vercel-postgres
-```
-
-```ts
-// payload.config.ts
-import { vercelPostgresAdapter } from '@payloadcms/db-vercel-postgres'
-
-export default buildConfig({
-  // ...
-  db: vercelPostgresAdapter({
-    pool: {
-      connectionString: process.env.POSTGRES_URL || '',
-    },
-  }),
-  // ...
-```
-
-We also support Vercel's blob storage:
-
-```bash
-pnpm add @payloadcms/storage-vercel-blob
-```
-
-```ts
-// payload.config.ts
-import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
-
-export default buildConfig({
-  // ...
-  plugins: [
-    vercelBlobStorage({
-      collections: {
-        [Media.slug]: true,
-      },
-      token: process.env.BLOB_READ_WRITE_TOKEN || '',
-    }),
-  ],
-  // ...
-```
-
-### Self-hosting
-
-Before deploying your app, you need to:
-
-1. Ensure your app builds and serves in production. See [Production](#production) for more details.
-2. You can then deploy Payload as you would any other Node.js or Next.js application either directly on a VPS, DigitalOcean's Apps Platform, via Coolify or more. More guides coming soon.
-
-You can also deploy your app manually, check out the [deployment documentation](https://payloadcms.com/docs/production/deployment) for full details.
-
-## Questions
-
-If you have any issues or questions, reach out to us on [Discord](https://discord.com/invite/payload) or start a [GitHub discussion](https://github.com/payloadcms/payload/discussions).
+- Stabilize the public `adyenAdapter` and `adyenAdapterClient` options.
+- Move starter-specific checkout pages into template docs or examples.
+- Add package-level tests with mocked Adyen API responses.
+- Decide whether admin capture/refund/cancel should remain endpoints only or get Payload admin UI affordances.
+- Keep the adapter aligned with Payload Ecommerce's `PaymentAdapter` contract.
