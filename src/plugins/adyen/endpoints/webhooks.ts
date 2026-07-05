@@ -1,5 +1,6 @@
 import type { Endpoint } from 'payload'
 
+import { completeAdyenOrder } from '../completeOrder'
 import type { AdyenAdapterArgs, AdyenNotificationRequestItem } from '../types'
 import { validateStandardNotificationHMAC } from '../utilities'
 
@@ -10,11 +11,68 @@ type AdyenWebhookBody = {
 }
 
 const getStatusFromNotification = (notification: AdyenNotificationRequestItem) => {
-  if (notification.eventCode !== 'AUTHORISATION') {
-    return undefined
+  if (notification.eventCode === 'AUTHORISATION') {
+    return notification.success === 'true' ? 'succeeded' : 'failed'
   }
 
-  return notification.success === 'true' ? 'succeeded' : 'failed'
+  if (
+    (notification.eventCode === 'CANCELLATION' || notification.eventCode === 'TECHNICAL_CANCEL') &&
+    notification.success === 'true'
+  ) {
+    return 'cancelled'
+  }
+
+  if (notification.eventCode === 'REFUND' && notification.success === 'true') {
+    return 'refunded'
+  }
+
+  return undefined
+}
+
+const getModificationPspField = (eventCode?: string) => {
+  if (eventCode === 'CAPTURE' || eventCode === 'CAPTURE_FAILED') {
+    return 'capturePspReference'
+  }
+
+  if (eventCode === 'REFUND' || eventCode === 'REFUND_FAILED' || eventCode === 'REFUNDED_REVERSED') {
+    return 'refundPspReference'
+  }
+
+  if (eventCode === 'CANCELLATION' || eventCode === 'TECHNICAL_CANCEL') {
+    return 'cancelPspReference'
+  }
+
+  return undefined
+}
+
+const updateRelatedOrderStatus = async ({
+  req,
+  status,
+  transaction,
+}: {
+  req: Parameters<Endpoint['handler']>[0]
+  status?: string
+  transaction: Record<string, any>
+}) => {
+  if ((status !== 'cancelled' && status !== 'refunded') || !transaction.order) {
+    return
+  }
+
+  const orderID =
+    typeof transaction.order === 'object' && transaction.order ? transaction.order.id : transaction.order
+
+  if (!orderID) {
+    return
+  }
+
+  await (req.payload as any).update({
+    id: orderID,
+    collection: 'orders',
+    data: {
+      status,
+    },
+    req,
+  })
 }
 
 const reconcileTransaction = async ({
@@ -49,6 +107,24 @@ const reconcileTransaction = async ({
           },
         ]
       : []),
+    ...(notification.originalReference
+      ? [
+          {
+            'adyen.pspReference': {
+              equals: notification.originalReference,
+            },
+          },
+        ]
+      : []),
+    ...(notification.pspReference
+      ? [
+          {
+            'adyen.pspReference': {
+              equals: notification.pspReference,
+            },
+          },
+        ]
+      : []),
   ]
 
   if (or.length === 0) {
@@ -78,6 +154,22 @@ const reconcileTransaction = async ({
   }
 
   const status = getStatusFromNotification(notification)
+  const modificationPspField = getModificationPspField(notification.eventCode)
+
+  if (status === 'succeeded') {
+    await completeAdyenOrder({
+      decrementInventory: true,
+      eventCode: notification.eventCode,
+      paymentMethod: notification.paymentMethod,
+      pspReference: notification.pspReference,
+      req,
+      resultCode: 'Authorised',
+      ...(checkoutSessionID ? { sessionID: checkoutSessionID } : {}),
+      transaction,
+    })
+
+    return
+  }
 
   await (req.payload as any).update({
     id: transaction.id,
@@ -86,13 +178,32 @@ const reconcileTransaction = async ({
       adyen: {
         ...(transaction.adyen || {}),
         eventCode: notification.eventCode,
+        ...(notification.originalReference
+          ? { originalReference: notification.originalReference }
+          : {}),
         paymentMethod: notification.paymentMethod,
-        pspReference: notification.pspReference,
+        ...(notification.eventCode === 'AUTHORISATION'
+          ? { pspReference: notification.pspReference }
+          : {}),
+        ...(modificationPspField ? { [modificationPspField]: notification.pspReference } : {}),
+        ...(notification.eventCode && notification.eventCode !== 'AUTHORISATION'
+          ? {
+              modificationReason: notification.reason,
+              modificationStatus: notification.success === 'true' ? 'succeeded' : 'failed',
+            }
+          : {}),
+        ...(status === 'failed' ? { resultCode: 'Refused' } : {}),
         ...(checkoutSessionID ? { sessionID: checkoutSessionID } : {}),
       },
       ...(status ? { status } : {}),
     },
     req,
+  })
+
+  await updateRelatedOrderStatus({
+    req,
+    status,
+    transaction,
   })
 }
 

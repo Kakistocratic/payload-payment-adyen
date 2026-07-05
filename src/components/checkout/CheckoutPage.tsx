@@ -337,6 +337,7 @@ export const CheckoutPage: React.FC = () => {
                       id: string
                       locale?: string
                       sessionData: string
+                      translations?: Record<string, Record<string, string>>
                     }
                   }
                   setProcessingPayment={setProcessingPayment}

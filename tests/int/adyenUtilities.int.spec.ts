@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   getAdyenHMACPayload,
+  getAdyenPaymentModificationURL,
   getAdyenSessionsURL,
   getShopperReference,
   flattenCartItems,
@@ -66,6 +67,12 @@ describe('Adyen utilities', () => {
         liveEndpointUrlPrefix: 'example',
       }),
     ).toBe('https://example-checkout-live.adyenpayments.com/checkout/v71/sessions')
+  })
+
+  it('builds payment modification API URLs', () => {
+    expect(getAdyenPaymentModificationURL({ environment: 'test' }, 'PSP/123', 'refunds')).toBe(
+      'https://checkout-test.adyen.com/v71/payments/PSP%2F123/refunds',
+    )
   })
 
   it('prefixes Payload user IDs for Adyen shopperReference compatibility', () => {

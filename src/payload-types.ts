@@ -920,8 +920,23 @@ export interface Transaction {
     resultCode?: string | null;
     sessionResult?: string | null;
     shopperLocale?: string | null;
+    shippingAddress?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
     paymentMethod?: string | null;
     eventCode?: string | null;
+    capturePspReference?: string | null;
+    refundPspReference?: string | null;
+    cancelPspReference?: string | null;
+    originalReference?: string | null;
+    modificationStatus?: string | null;
+    modificationReason?: string | null;
   };
   billingAddress?: {
     title?: string | null;
@@ -1740,8 +1755,15 @@ export interface TransactionsSelect<T extends boolean = true> {
         resultCode?: T;
         sessionResult?: T;
         shopperLocale?: T;
+        shippingAddress?: T;
         paymentMethod?: T;
         eventCode?: T;
+        capturePspReference?: T;
+        refundPspReference?: T;
+        cancelPspReference?: T;
+        originalReference?: T;
+        modificationStatus?: T;
+        modificationReason?: T;
       };
   billingAddress?:
     | T

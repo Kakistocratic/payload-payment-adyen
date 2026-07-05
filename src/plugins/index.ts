@@ -127,6 +127,7 @@ export const plugins: Plugin[] = [
           apiKey: process.env.ADYEN_API_KEY!,
           clientKey: process.env.NEXT_PUBLIC_ADYEN_CLIENT_KEY!,
           environment: process.env.ADYEN_ENVIRONMENT === 'live' ? 'live' : 'test',
+          forceRedirectThreeDS: process.env.ADYEN_FORCE_REDIRECT_3DS === 'true',
           hmacKey: process.env.ADYEN_HMAC_KEY,
           liveEndpointUrlPrefix: process.env.ADYEN_LIVE_ENDPOINT_URL_PREFIX,
           merchantAccount: process.env.ADYEN_MERCHANT_ACCOUNT!,

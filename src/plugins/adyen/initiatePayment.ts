@@ -62,21 +62,32 @@ export const initiatePayment =
       returnURL || `${process.env.NEXT_PUBLIC_SERVER_URL || ''}/checkout/confirm-order`
 
     try {
+      const sessionRequest = {
+        amount: {
+          currency,
+          value: amount,
+        },
+        channel: 'Web',
+        countryCode,
+        ...(props.forceRedirectThreeDS
+          ? {
+              authenticationData: {
+                threeDSRequestData: {
+                  nativeThreeDS: 'disabled',
+                },
+              },
+            }
+          : {}),
+        merchantAccount,
+        reference: merchantReference,
+        returnUrl,
+        shopperEmail: customerEmail,
+        shopperLocale,
+        shopperReference: getShopperReference(req.user?.id),
+      }
+
       const response = await fetch(getAdyenSessionsURL(props), {
-        body: JSON.stringify({
-          amount: {
-            currency,
-            value: amount,
-          },
-          channel: 'Web',
-          countryCode,
-          merchantAccount,
-          reference: merchantReference,
-          returnUrl,
-          shopperEmail: customerEmail,
-          shopperLocale,
-          shopperReference: getShopperReference(req.user?.id),
-        }),
+        body: JSON.stringify(sessionRequest),
         headers: {
           'content-type': 'application/json',
           'idempotency-key': merchantReference,
@@ -109,6 +120,7 @@ export const initiatePayment =
           adyen: {
             merchantReference,
             sessionID: session.id,
+            shippingAddress,
             shopperLocale,
           },
           amount,
@@ -133,6 +145,7 @@ export const initiatePayment =
         message: 'Payment initiated successfully',
         merchantReference,
         sessionData: session.sessionData,
+        ...(props.translations ? { translations: props.translations } : {}),
       }
     } catch (error) {
       payload.logger.error({

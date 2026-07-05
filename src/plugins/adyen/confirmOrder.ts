@@ -1,5 +1,6 @@
 import type { PaymentAdapter } from '@payloadcms/plugin-ecommerce/types'
 
+import { completeAdyenOrder } from './completeOrder'
 import type { AdyenAdapterArgs } from './types'
 
 type ConfirmOrder = PaymentAdapter['confirmOrder']
@@ -51,78 +52,26 @@ export const confirmOrder =
         throw new Error('No transaction found for the provided Adyen session ID.')
       }
 
-      if (transaction.order) {
-        const orderID =
-          typeof transaction.order === 'object' && transaction.order
-            ? transaction.order.id
-            : transaction.order
-
-        return {
-          message: 'Order already confirmed',
-          orderID,
-          transactionID: transaction.id,
-        }
-      }
-
-      const cartID =
-        typeof transaction.cart === 'object' && transaction.cart ? transaction.cart.id : transaction.cart
-
-      if (!cartID) {
-        throw new Error('Cart ID not found on transaction.')
-      }
-
-      const order = (await payload.create({
-        collection: ordersSlug,
-        data: {
-          amount: transaction.amount,
-          currency: transaction.currency,
-          ...(req.user
-            ? {
-                customer: req.user.id,
-              }
-            : {
-                customerEmail,
-              }),
-          items: transaction.items,
-          shippingAddress: data.shippingAddress,
-          status: 'processing',
-          transactions: [transaction.id],
-        },
+      const orderResult = await completeAdyenOrder({
+        cartsSlug,
+        customerEmail,
+        ordersSlug,
+        pspReference,
         req,
-      })) as any
-
-      await payload.update({
-        id: cartID,
-        collection: cartsSlug,
-        data: {
-          purchasedAt: new Date().toISOString(),
-        },
-        req,
-      })
-
-      await payload.update({
-        id: transaction.id,
-        collection: transactionsSlug,
-        data: {
-          adyen: {
-            ...(transaction.adyen || {}),
-            pspReference,
-            resultCode,
-            sessionResult,
-          },
-          order: order.id,
-          status: 'succeeded',
-        },
-        req,
+        resultCode,
+        sessionResult,
+        shippingAddress: data.shippingAddress,
+        transaction,
+        transactionsSlug,
       })
 
       return {
-        message: 'Order confirmed successfully',
-        orderID: order.id,
-        transactionID: transaction.id,
-        ...(order.accessToken
+        message: orderResult.message,
+        orderID: orderResult.orderID,
+        transactionID: orderResult.created ? transaction.id : '',
+        ...(orderResult.accessToken
           ? {
-              accessToken: order.accessToken,
+              accessToken: orderResult.accessToken,
             }
           : {}),
       }

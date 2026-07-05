@@ -22,6 +22,7 @@ type AdyenPaymentData = {
   locale?: string
   merchantReference?: string
   sessionData: string
+  translations?: Record<string, Record<string, string>>
 }
 
 type Props = {
@@ -158,6 +159,8 @@ export const AdyenCheckoutForm: React.FC<Props> = ({
           ...(shippingAddress ? { shippingAddress } : {}),
         })
 
+        const resolvedTranslations = translations || paymentData.translations
+
         const checkout = await AdyenCheckout({
           ...(paymentData.amount ? { amount: paymentData.amount } : {}),
           clientKey: process.env.NEXT_PUBLIC_ADYEN_CLIENT_KEY || '',
@@ -199,7 +202,7 @@ export const AdyenCheckoutForm: React.FC<Props> = ({
             id: paymentData.id,
             sessionData: paymentData.sessionData,
           },
-          ...(translations ? { translations } : {}),
+          ...(resolvedTranslations ? { translations: resolvedTranslations } : {}),
         })
 
         if (isCancelled || !containerRef.current) {
@@ -242,6 +245,7 @@ export const AdyenCheckoutForm: React.FC<Props> = ({
     paymentData.id,
     paymentData.locale,
     paymentData.sessionData,
+    paymentData.translations,
     recordPaymentOutcome,
     setProcessingPayment,
     shippingAddress,

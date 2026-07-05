@@ -11,11 +11,13 @@ export type AdyenAdapterArgs = {
   apiVersion?: string
   clientKey: string
   environment?: AdyenEnvironment
+  forceRedirectThreeDS?: boolean
   hmacKey?: string
   liveEndpointUrlPrefix?: string
   merchantAccount: string
   returnURL?: string
   shopperLocale?: string
+  translations?: Record<string, Record<string, string>>
   webhooks?: AdyenWebhookHandlers
 } & PaymentAdapterArgs
 

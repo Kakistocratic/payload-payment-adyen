@@ -2,6 +2,7 @@ import type { GroupField } from 'payload'
 import type { PaymentAdapter, PaymentAdapterClient } from '@payloadcms/plugin-ecommerce/types'
 
 import { confirmOrder } from './confirmOrder'
+import { modifyPaymentEndpoint } from './endpoints/modifyPayment'
 import { outcomeEndpoint } from './endpoints/outcome'
 import { webhooksEndpoint } from './endpoints/webhooks'
 import { initiatePayment } from './initiatePayment'
@@ -43,6 +44,14 @@ export const adyenAdapter = (props: AdyenAdapterArgs): PaymentAdapter => {
       label: 'Adyen Shopper Locale',
     },
     {
+      name: 'shippingAddress',
+      type: 'json',
+      label: 'Adyen Checkout Shipping Address',
+      admin: {
+        hidden: true,
+      },
+    },
+    {
       name: 'paymentMethod',
       type: 'text',
       label: 'Adyen Payment Method',
@@ -51,6 +60,36 @@ export const adyenAdapter = (props: AdyenAdapterArgs): PaymentAdapter => {
       name: 'eventCode',
       type: 'text',
       label: 'Adyen Webhook Event Code',
+    },
+    {
+      name: 'capturePspReference',
+      type: 'text',
+      label: 'Adyen Capture PSP Reference',
+    },
+    {
+      name: 'refundPspReference',
+      type: 'text',
+      label: 'Adyen Refund PSP Reference',
+    },
+    {
+      name: 'cancelPspReference',
+      type: 'text',
+      label: 'Adyen Cancel PSP Reference',
+    },
+    {
+      name: 'originalReference',
+      type: 'text',
+      label: 'Adyen Original PSP Reference',
+    },
+    {
+      name: 'modificationStatus',
+      type: 'text',
+      label: 'Adyen Modification Status',
+    },
+    {
+      name: 'modificationReason',
+      type: 'text',
+      label: 'Adyen Modification Reason',
     },
   ]
 
@@ -75,6 +114,9 @@ export const adyenAdapter = (props: AdyenAdapterArgs): PaymentAdapter => {
     confirmOrder: confirmOrder(props),
     endpoints: [
       outcomeEndpoint(),
+      modifyPaymentEndpoint(props, 'capture'),
+      modifyPaymentEndpoint(props, 'refund'),
+      modifyPaymentEndpoint(props, 'cancel'),
       webhooksEndpoint({
         hmacKey: props.hmacKey,
         webhooks: props.webhooks,

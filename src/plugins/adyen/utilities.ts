@@ -33,6 +33,17 @@ export const getAdyenSessionsURL = (args: Pick<AdyenAdapterArgs, 'apiVersion' | 
   return `${baseURL}/v${apiVersion}/sessions`
 }
 
+export const getAdyenPaymentModificationURL = (
+  args: Pick<AdyenAdapterArgs, 'apiVersion' | 'environment' | 'liveEndpointUrlPrefix'>,
+  paymentPspReference: string,
+  operation: 'cancels' | 'captures' | 'refunds',
+) => {
+  const baseURL = getAdyenCheckoutBaseURL(args)
+  const apiVersion = args.apiVersion || DEFAULT_API_VERSION
+
+  return `${baseURL}/v${apiVersion}/payments/${encodeURIComponent(paymentPspReference)}/${operation}`
+}
+
 export const flattenCartItems = (items: NonNullable<unknown[]>) => {
   return items.map((item) => {
     if (!item || typeof item !== 'object') {
