@@ -1,18 +1,16 @@
 'use client'
 
-import { Message } from '@/components/Message'
-import { LoadingSpinner } from '@/components/LoadingSpinner'
-import type { Address } from '@/payload-types'
-import { useCart, usePayments } from '@payloadcms/plugin-ecommerce/client/react'
 import { AdyenCheckout, Dropin } from '@adyen/adyen-web/auto'
+import { useCart, usePayments } from '@payloadcms/plugin-ecommerce/client/react'
 import { useRouter } from 'next/navigation'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+
 import {
   removeStoredAdyenCheckoutContext,
   storeAdyenCheckoutContext,
-} from '@/plugins/adyen/client/checkoutContext'
+} from './checkoutContext'
 
-type AdyenPaymentData = {
+export type AdyenPaymentData = {
   amount?: {
     currency: string
     value: number
@@ -25,31 +23,50 @@ type AdyenPaymentData = {
   translations?: Record<string, Record<string, string>>
 }
 
-type Props = {
-  billingAddress?: Partial<Address>
-  customerEmail?: string
-  locale?: string
-  paymentData: AdyenPaymentData
-  setProcessingPayment: React.Dispatch<React.SetStateAction<boolean>>
-  shippingAddress?: Partial<Address>
-  translations?: Record<string, Record<string, string>>
-}
-
-type AdyenPaymentResult = {
+export type AdyenPaymentResult = {
   paymentMethod?: string
+  pspReference?: string
   resultCode?: string
   sessionResult?: string
-  pspReference?: string
+}
+
+export type AdyenCheckoutFormProps = {
+  billingAddress?: {
+    country?: unknown
+  } | null
+  className?: string
+  customerEmail?: string
+  errorClassName?: string
+  loadingFallback?: React.ReactNode
+  locale?: string
+  messageClassName?: string
+  onOrderConfirmed?: (args: {
+    accessToken?: string
+    customerEmail?: string
+    orderID: unknown
+    result: unknown
+  }) => void
+  paymentData: AdyenPaymentData
+  setProcessingPayment?: React.Dispatch<React.SetStateAction<boolean>>
+  shippingAddress?: unknown
+  translations?: Record<string, Record<string, string>>
 }
 
 const getErrorMessage = (error: unknown) => {
   return error instanceof Error ? error.message : 'Something went wrong.'
 }
 
-export const AdyenCheckoutForm: React.FC<Props> = ({
+const defaultLoadingFallback = <p>Loading payment form...</p>
+
+export const AdyenCheckoutForm: React.FC<AdyenCheckoutFormProps> = ({
   billingAddress,
+  className,
   customerEmail,
+  errorClassName,
+  loadingFallback = defaultLoadingFallback,
   locale: localeFromProps,
+  messageClassName,
+  onOrderConfirmed,
   paymentData,
   setProcessingPayment,
   shippingAddress,
@@ -67,7 +84,7 @@ export const AdyenCheckoutForm: React.FC<Props> = ({
 
   const handleConfirmedOrder = useCallback(
     async (result: AdyenPaymentResult) => {
-      setProcessingPayment(true)
+      setProcessingPayment?.(true)
 
       const confirmResult = await confirmOrder('adyen', {
         additionalData: {
@@ -88,6 +105,20 @@ export const AdyenCheckoutForm: React.FC<Props> = ({
       ) {
         const accessToken =
           'accessToken' in confirmResult ? (confirmResult.accessToken as string) : ''
+
+        clearCart()
+        removeStoredAdyenCheckoutContext(paymentData.id)
+
+        if (onOrderConfirmed) {
+          onOrderConfirmed({
+            ...(accessToken ? { accessToken } : {}),
+            customerEmail,
+            orderID: confirmResult.orderID,
+            result: confirmResult,
+          })
+          return
+        }
+
         const queryParams = new URLSearchParams()
 
         if (customerEmail) {
@@ -97,9 +128,6 @@ export const AdyenCheckoutForm: React.FC<Props> = ({
           queryParams.set('accessToken', accessToken)
         }
 
-        clearCart()
-        removeStoredAdyenCheckoutContext(paymentData.id)
-
         const queryString = queryParams.toString()
         router.push(`/orders/${confirmResult.orderID}${queryString ? `?${queryString}` : ''}`)
         return
@@ -107,7 +135,16 @@ export const AdyenCheckoutForm: React.FC<Props> = ({
 
       throw new Error('Order confirmation did not return an order ID.')
     },
-    [clearCart, confirmOrder, customerEmail, paymentData.id, router, setProcessingPayment, shippingAddress],
+    [
+      clearCart,
+      confirmOrder,
+      customerEmail,
+      onOrderConfirmed,
+      paymentData.id,
+      router,
+      setProcessingPayment,
+      shippingAddress,
+    ],
   )
 
   const recordPaymentOutcome = useCallback(
@@ -152,6 +189,7 @@ export const AdyenCheckoutForm: React.FC<Props> = ({
           paymentData.locale ||
           localeFromProps ||
           (typeof navigator !== 'undefined' && navigator.language ? navigator.language : 'en-US')
+        const resolvedTranslations = translations || paymentData.translations
 
         storeAdyenCheckoutContext(paymentData.id, {
           ...(customerEmail ? { customerEmail } : {}),
@@ -159,12 +197,13 @@ export const AdyenCheckoutForm: React.FC<Props> = ({
           ...(shippingAddress ? { shippingAddress } : {}),
         })
 
-        const resolvedTranslations = translations || paymentData.translations
-
         const checkout = await AdyenCheckout({
           ...(paymentData.amount ? { amount: paymentData.amount } : {}),
           clientKey: process.env.NEXT_PUBLIC_ADYEN_CLIENT_KEY || '',
-          countryCode: paymentData.countryCode || billingAddress?.country || 'US',
+          countryCode:
+            paymentData.countryCode ||
+            (typeof billingAddress?.country === 'string' ? billingAddress.country : undefined) ||
+            'US',
           environment: process.env.NEXT_PUBLIC_ADYEN_ENVIRONMENT === 'live' ? 'live' : 'test',
           locale,
           onError: (error) => {
@@ -174,13 +213,13 @@ export const AdyenCheckoutForm: React.FC<Props> = ({
                 : 'Payment failed before it could be completed.',
             )
             setIsLoading(false)
-            setProcessingPayment(false)
+            setProcessingPayment?.(false)
           },
           onPaymentCompleted: (result: AdyenPaymentResult) => {
             void handleConfirmedOrder(result).catch((error) => {
               setError(`Error while confirming order: ${getErrorMessage(error)}`)
               setIsLoading(false)
-              setProcessingPayment(false)
+              setProcessingPayment?.(false)
             })
           },
           onPaymentFailed: (result?: AdyenPaymentResult) => {
@@ -196,7 +235,7 @@ export const AdyenCheckoutForm: React.FC<Props> = ({
                   : 'The payment was not completed.',
             )
             setIsLoading(false)
-            setProcessingPayment(false)
+            setProcessingPayment?.(false)
           },
           session: {
             id: paymentData.id,
@@ -223,7 +262,7 @@ export const AdyenCheckoutForm: React.FC<Props> = ({
       } catch (error) {
         setError(`Error while loading payment form: ${getErrorMessage(error)}`)
         setIsLoading(false)
-        setProcessingPayment(false)
+        setProcessingPayment?.(false)
       }
     }
 
@@ -237,8 +276,8 @@ export const AdyenCheckoutForm: React.FC<Props> = ({
     }
   }, [
     billingAddress?.country,
-    handleConfirmedOrder,
     customerEmail,
+    handleConfirmedOrder,
     localeFromProps,
     paymentData.amount,
     paymentData.countryCode,
@@ -253,14 +292,14 @@ export const AdyenCheckoutForm: React.FC<Props> = ({
   ])
 
   return (
-    <div>
-      {error && <Message error={error} />}
-      {message && <p className="mb-4 text-sm text-muted-foreground">{message}</p>}
-      {isLoading && (
-        <div className="my-8">
-          <LoadingSpinner />
-        </div>
+    <div className={className}>
+      {error && (
+        <p className={errorClassName} role="alert">
+          {error}
+        </p>
       )}
+      {message && <p className={messageClassName}>{message}</p>}
+      {isLoading && loadingFallback}
       <div ref={containerRef} />
     </div>
   )

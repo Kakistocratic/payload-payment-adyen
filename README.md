@@ -2,7 +2,7 @@
 
 This project is a Payload Ecommerce Starter fork used to build and test an Adyen payment adapter.
 
-The adapter currently lives inside the starter app at `src/plugins/adyen`. The long-term goal is to extract it into a standalone Payload payment adapter package after the checkout, webhook, and admin payment-operation flows have settled.
+The adapter now lives in the workspace package at `packages/payload-payment-adyen`. The starter app consumes that package through `payload-payment-adyen`, the same import path that can later be published or installed from Git.
 
 ## Current Status
 
@@ -31,15 +31,16 @@ Not finished:
 
 ## Relevant Files
 
-- `src/plugins/adyen/index.ts`: adapter registration, transaction metadata fields, and endpoint registration.
-- `src/plugins/adyen/initiatePayment.ts`: creates Adyen Sessions and Payload transactions.
-- `src/plugins/adyen/confirmOrder.ts`: browser-return order confirmation.
-- `src/plugins/adyen/completeOrder.ts`: shared idempotent order creation used by browser return and webhooks.
-- `src/plugins/adyen/endpoints/webhooks.ts`: Standard webhook handling, HMAC validation, transaction reconciliation.
-- `src/plugins/adyen/endpoints/outcome.ts`: records failed or refused in-page outcomes.
-- `src/plugins/adyen/endpoints/modifyPayment.ts`: admin-only capture/refund/cancel endpoints.
-- `src/components/forms/AdyenCheckoutForm/index.tsx`: Adyen Web Drop-in integration.
-- `src/components/checkout/ConfirmOrder.tsx`: redirect-return handler.
+- `packages/payload-payment-adyen/src/index.ts`: adapter registration, transaction metadata fields, and endpoint registration.
+- `packages/payload-payment-adyen/src/initiatePayment.ts`: creates Adyen Sessions and Payload transactions.
+- `packages/payload-payment-adyen/src/confirmOrder.ts`: browser-return order confirmation.
+- `packages/payload-payment-adyen/src/completeOrder.ts`: shared idempotent order creation used by browser return and webhooks.
+- `packages/payload-payment-adyen/src/endpoints/webhooks.ts`: Standard webhook handling, HMAC validation, transaction reconciliation.
+- `packages/payload-payment-adyen/src/endpoints/outcome.ts`: records failed or refused in-page outcomes.
+- `packages/payload-payment-adyen/src/endpoints/modifyPayment.ts`: admin-only capture/refund/cancel endpoints.
+- `packages/payload-payment-adyen/src/react/AdyenCheckoutForm.tsx`: reusable Adyen Web Drop-in integration.
+- `packages/payload-payment-adyen/src/react/AdyenRedirectReturn.tsx`: reusable redirect-return handler.
+- `src/components/checkout/ConfirmOrder.tsx`: starter page that wires Adyen/Stripe return handling to app routing.
 - `src/components/checkout/CheckoutPage.tsx`: checkout flow wired to `initiatePayment('adyen')`.
 - `src/providers/index.tsx`: client-side payment adapter registration.
 
@@ -368,24 +369,30 @@ Before live use:
 8. Decide whether the merchant uses automatic capture or manual capture.
 9. Test refused, cancelled, redirect, webhook-only, refund, capture, and cancel scenarios.
 
-## Extraction Plan
+## Package and Migration Docs
 
-The implementation should eventually move into a standalone package with a shape similar to:
+The installable package source lives at:
 
 ```text
-packages/
-  payload-payment-adyen/
-    src/
-      index.ts
-      client/
-      endpoints/
-      types.ts
+packages/payload-payment-adyen
 ```
 
-Before extraction:
+Package docs:
 
-- Stabilize the public `adyenAdapter` and `adyenAdapterClient` options.
-- Move starter-specific checkout pages into template docs or examples.
-- Add package-level tests with mocked Adyen API responses.
-- Decide whether admin capture/refund/cancel should remain endpoints only or get Payload admin UI affordances.
+- `packages/payload-payment-adyen/README.md`
+- `packages/payload-payment-adyen/docs/migrate-from-stripe.md`
+
+The starter consumes the package through workspace imports:
+
+```ts
+import { adyenAdapter } from 'payload-payment-adyen'
+import { adyenAdapterClient } from 'payload-payment-adyen/client'
+import { AdyenCheckoutForm, AdyenRedirectReturn } from 'payload-payment-adyen/react'
+```
+
+Remaining package work:
+
+- Add compiled package output for registry publishing instead of source-only workspace/Git installs.
+- Add package-level API tests with mocked Adyen API responses.
+- Decide whether admin capture/refund/cancel should stay endpoint-only or gain optional Payload admin UI components.
 - Keep the adapter aligned with Payload Ecommerce's `PaymentAdapter` contract.

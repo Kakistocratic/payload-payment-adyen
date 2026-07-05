@@ -7,8 +7,8 @@ import {
   getShopperReference,
   flattenCartItems,
   validateStandardNotificationHMAC,
-} from '@/plugins/adyen/utilities'
-import type { AdyenNotificationRequestItem } from '@/plugins/adyen/types'
+} from 'payload-payment-adyen/utilities'
+import type { AdyenNotificationRequestItem } from 'payload-payment-adyen'
 
 describe('Adyen utilities', () => {
   it('builds the standard notification HMAC payload in Adyen field order', () => {

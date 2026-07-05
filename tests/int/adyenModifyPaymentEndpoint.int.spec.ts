@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { modifyPaymentEndpoint } from '@/plugins/adyen/endpoints/modifyPayment'
+import { modifyPaymentEndpoint } from 'payload-payment-adyen'
 
 describe('Adyen modify payment endpoints', () => {
   it('rejects non-admin users', async () => {

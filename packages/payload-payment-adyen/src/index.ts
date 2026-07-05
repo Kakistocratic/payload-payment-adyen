@@ -138,3 +138,8 @@ export const adyenAdapterClient = (props: AdyenAdapterClientArgs): PaymentAdapte
 }
 
 export type { AdyenAdapterArgs, AdyenAdapterClientArgs } from './types'
+export { completeAdyenOrder } from './completeOrder'
+export { modifyPaymentEndpoint } from './endpoints/modifyPayment'
+export { outcomeEndpoint } from './endpoints/outcome'
+export { webhooksEndpoint } from './endpoints/webhooks'
+export type { AdyenNotificationRequestItem, AdyenWebhookHandler, AdyenWebhookHandlers } from './types'

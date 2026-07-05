@@ -3,20 +3,9 @@
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { Message } from '@/components/Message'
 import { useCart, usePayments } from '@payloadcms/plugin-ecommerce/client/react'
-import { AdyenCheckout } from '@adyen/adyen-web/auto'
+import { AdyenRedirectReturn } from 'payload-payment-adyen/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import {
-  getStoredAdyenCheckoutContext,
-  removeStoredAdyenCheckoutContext,
-} from '@/plugins/adyen/client/checkoutContext'
-
-type PaymentResult = {
-  paymentMethod?: string
-  pspReference?: string
-  resultCode?: string
-  sessionResult?: string
-}
 
 const getAccessToken = (result: object) => {
   return 'accessToken' in result ? (result.accessToken as string) : ''
@@ -54,105 +43,18 @@ export const ConfirmOrder: React.FC = () => {
     [router],
   )
 
-  const recordAdyenOutcome = useCallback(async (sessionID: string, result?: PaymentResult) => {
-    if (!result?.resultCode) {
-      return
-    }
-
-    await fetch('/api/payments/adyen/outcome', {
-      body: JSON.stringify({
-        paymentMethod: result.paymentMethod,
-        pspReference: result.pspReference,
-        resultCode: result.resultCode,
-        sessionID,
-        sessionResult: result.sessionResult,
-      }),
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      method: 'POST',
-    })
-  }, [])
+  const adyenSessionID = searchParams.get('sessionId')
+  const redirectResult = searchParams.get('redirectResult')
 
   useEffect(() => {
     if (!cart || !cart.items || cart.items?.length === 0) {
       return
     }
 
-    const adyenSessionID = searchParams.get('sessionId')
-    const redirectResult = searchParams.get('redirectResult')
     const paymentIntentID = searchParams.get('payment_intent')
     const email = searchParams.get('email')
 
     if (adyenSessionID && redirectResult) {
-      if (!isConfirming.current) {
-        isConfirming.current = true
-
-        const storedContext = getStoredAdyenCheckoutContext(adyenSessionID)
-
-        void AdyenCheckout({
-          clientKey: process.env.NEXT_PUBLIC_ADYEN_CLIENT_KEY || '',
-          environment: process.env.NEXT_PUBLIC_ADYEN_ENVIRONMENT === 'live' ? 'live' : 'test',
-          locale:
-            storedContext?.locale ||
-            (typeof navigator !== 'undefined' && navigator.language ? navigator.language : 'en-US'),
-          onError: () => {
-            setError('Payment confirmation failed. Try again or contact support.')
-          },
-          onPaymentCompleted: (result: PaymentResult) => {
-            void confirmOrder('adyen', {
-              additionalData: {
-                ...(storedContext?.customerEmail
-                  ? {
-                      customerEmail: storedContext.customerEmail,
-                    }
-                  : {}),
-                pspReference: result.pspReference,
-                resultCode: result.resultCode,
-                sessionID: adyenSessionID,
-                sessionResult: result.sessionResult,
-                ...(storedContext?.shippingAddress
-                  ? {
-                      shippingAddress: storedContext.shippingAddress,
-                    }
-                  : {}),
-              },
-            })
-              .then((result) => {
-                if (result && typeof result === 'object') {
-                  removeStoredAdyenCheckoutContext(adyenSessionID)
-                  redirectToOrder(result, storedContext?.customerEmail)
-                }
-              })
-              .catch((error) => {
-                setError(error instanceof Error ? error.message : 'Payment confirmation failed.')
-              })
-          },
-          onPaymentFailed: (result?: PaymentResult) => {
-            void recordAdyenOutcome(adyenSessionID, result).finally(() => {
-              setError(
-                result?.resultCode
-                  ? `Payment was not completed. Result code: ${result.resultCode}`
-                  : 'Payment was not completed.',
-              )
-            })
-          },
-          session: {
-            id: adyenSessionID,
-          },
-        } as never)
-          .then((checkout) => {
-            checkout.submitDetails({
-              details: {
-                redirectResult,
-              },
-            })
-          })
-          .catch((error) => {
-            setError(error instanceof Error ? error.message : 'Payment confirmation failed.')
-          })
-      }
       return
     }
 
@@ -174,7 +76,26 @@ export const ConfirmOrder: React.FC = () => {
       // If no payment intent ID is found, redirect to the home
       router.push('/')
     }
-  }, [cart, confirmOrder, recordAdyenOutcome, redirectToOrder, router, searchParams])
+  }, [adyenSessionID, cart, confirmOrder, redirectResult, redirectToOrder, router, searchParams])
+
+  if (adyenSessionID && redirectResult) {
+    return (
+      <div className="text-center w-full flex flex-col items-center justify-start gap-4">
+        <h1 className="text-2xl">Confirming Order</h1>
+        <AdyenRedirectReturn
+          errorClassName="text-destructive"
+          loadingFallback={<LoadingSpinner className="w-12 h-6" />}
+          onOrderConfirmed={({ customerEmail, result }) => {
+            if (result && typeof result === 'object') {
+              redirectToOrder(result, customerEmail)
+            }
+          }}
+          redirectResult={redirectResult}
+          sessionID={adyenSessionID}
+        />
+      </div>
+    )
+  }
 
   return (
     <div className="text-center w-full flex flex-col items-center justify-start gap-4">

@@ -1,0 +1,39 @@
+{
+  "name": "payload-payment-adyen",
+  "version": "0.1.0",
+  "description": "Adyen payment adapter and checkout helpers for Payload Ecommerce.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    },
+    "./client": {
+      "types": "./src/client.ts",
+      "import": "./src/client.ts"
+    },
+    "./react": {
+      "types": "./src/react/index.ts",
+      "import": "./src/react/index.ts"
+    },
+    "./utilities": {
+      "types": "./src/utilities.ts",
+      "import": "./src/utilities.ts"
+    }
+  },
+  "files": [
+    "src",
+    "docs",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@adyen/adyen-web": "^6.40.0",
+    "@payloadcms/plugin-ecommerce": "^3.85.0",
+    "next": "^15 || ^16",
+    "payload": "^3.85.0",
+    "react": "^19",
+    "react-dom": "^19"
+  }
+}

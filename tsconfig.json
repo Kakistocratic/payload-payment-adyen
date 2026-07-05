@@ -23,6 +23,10 @@
     ],
     "paths": {
       "@payload-config": ["./src/payload.config.ts"],
+      "payload-payment-adyen": ["./packages/payload-payment-adyen/src/index.ts"],
+      "payload-payment-adyen/client": ["./packages/payload-payment-adyen/src/client.ts"],
+      "payload-payment-adyen/react": ["./packages/payload-payment-adyen/src/react/index.ts"],
+      "payload-payment-adyen/utilities": ["./packages/payload-payment-adyen/src/utilities.ts"],
       "react": ["./node_modules/@types/react"],
       "@/*": ["./src/*"],
       "@/payload-types": ["./src/payload-types.ts"]

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { completeAdyenOrder } from '@/plugins/adyen/completeOrder'
+import { completeAdyenOrder } from 'payload-payment-adyen'
 
 const createMockReq = () =>
   ({
