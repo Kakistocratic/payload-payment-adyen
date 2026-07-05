@@ -4,6 +4,7 @@ import {
   getAdyenHMACPayload,
   getAdyenSessionsURL,
   getShopperReference,
+  flattenCartItems,
   validateStandardNotificationHMAC,
 } from '@/plugins/adyen/utilities'
 import type { AdyenNotificationRequestItem } from '@/plugins/adyen/types'
@@ -71,5 +72,28 @@ describe('Adyen utilities', () => {
     expect(getShopperReference(1)).toBe('user-1')
     expect(getShopperReference('ab')).toBe('user-ab')
     expect(getShopperReference(undefined)).toBeUndefined()
+  })
+
+  it('removes cart array item IDs when copying items into transactions', () => {
+    expect(
+      flattenCartItems([
+        {
+          id: 'cart-array-row-id',
+          product: {
+            id: 2,
+          },
+          quantity: 1,
+          variant: {
+            id: 5,
+          },
+        },
+      ]),
+    ).toEqual([
+      {
+        product: 2,
+        quantity: 1,
+        variant: 5,
+      },
+    ])
   })
 })

@@ -23,6 +23,7 @@ type Props = {
 }
 
 type AdyenPaymentResult = {
+  paymentMethod?: string
   resultCode?: string
   sessionResult?: string
   pspReference?: string
@@ -43,6 +44,7 @@ export const AdyenCheckoutForm: React.FC<Props> = ({
   const dropinRef = useRef<{ unmount?: () => void } | null>(null)
   const hasMounted = useRef(false)
   const [error, setError] = useState<null | string>(null)
+  const [message, setMessage] = useState<null | string>(null)
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
   const { clearCart } = useCart()
@@ -91,6 +93,29 @@ export const AdyenCheckoutForm: React.FC<Props> = ({
     [clearCart, confirmOrder, customerEmail, paymentData.id, router, setProcessingPayment, shippingAddress],
   )
 
+  const recordPaymentOutcome = useCallback(
+    async (result?: AdyenPaymentResult) => {
+      if (!result?.resultCode) {
+        return
+      }
+
+      await fetch('/api/payments/adyen/outcome', {
+        body: JSON.stringify({
+          paymentMethod: result.paymentMethod,
+          pspReference: result.pspReference,
+          resultCode: result.resultCode,
+          sessionID: paymentData.id,
+        }),
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        method: 'POST',
+      })
+    },
+    [paymentData.id],
+  )
+
   useEffect(() => {
     let isCancelled = false
 
@@ -101,6 +126,7 @@ export const AdyenCheckoutForm: React.FC<Props> = ({
 
       hasMounted.current = true
       setError(null)
+      setMessage(null)
       setIsLoading(true)
 
       try {
@@ -125,10 +151,16 @@ export const AdyenCheckoutForm: React.FC<Props> = ({
             })
           },
           onPaymentFailed: (result?: AdyenPaymentResult) => {
-            setError(
-              result?.resultCode
-                ? `Payment was not completed. Result code: ${result.resultCode}`
-                : 'Payment was not completed.',
+            void recordPaymentOutcome(result).catch(() => {
+              // Do not block shopper retry if recording the declined outcome fails.
+            })
+
+            setMessage(
+              result?.resultCode === 'Refused'
+                ? 'The payment was refused. Check the card details or try another payment method.'
+                : result?.resultCode
+                  ? `The payment was not completed. Result code: ${result.resultCode}`
+                  : 'The payment was not completed.',
             )
             setIsLoading(false)
             setProcessingPayment(false)
@@ -174,12 +206,14 @@ export const AdyenCheckoutForm: React.FC<Props> = ({
     handleConfirmedOrder,
     paymentData.id,
     paymentData.sessionData,
+    recordPaymentOutcome,
     setProcessingPayment,
   ])
 
   return (
     <div>
       {error && <Message error={error} />}
+      {message && <p className="mb-4 text-sm text-muted-foreground">{message}</p>}
       {isLoading && (
         <div className="my-8">
           <LoadingSpinner />

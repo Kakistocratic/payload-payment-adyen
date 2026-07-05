@@ -56,7 +56,7 @@ export const flattenCartItems = (items: NonNullable<unknown[]>) => {
         ? cartItem.variant.id
         : cartItem.variant
 
-    const { product: _product, variant: _variant, ...customProperties } = cartItem
+    const { id: _id, product: _product, variant: _variant, ...customProperties } = cartItem
 
     return {
       ...customProperties,

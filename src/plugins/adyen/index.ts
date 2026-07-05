@@ -2,6 +2,7 @@ import type { GroupField } from 'payload'
 import type { PaymentAdapter, PaymentAdapterClient } from '@payloadcms/plugin-ecommerce/types'
 
 import { confirmOrder } from './confirmOrder'
+import { outcomeEndpoint } from './endpoints/outcome'
 import { webhooksEndpoint } from './endpoints/webhooks'
 import { initiatePayment } from './initiatePayment'
 import type { AdyenAdapterArgs, AdyenAdapterClientArgs } from './types'
@@ -63,6 +64,7 @@ export const adyenAdapter = (props: AdyenAdapterArgs): PaymentAdapter => {
     name: 'adyen',
     confirmOrder: confirmOrder(props),
     endpoints: [
+      outcomeEndpoint(),
       webhooksEndpoint({
         hmacKey: props.hmacKey,
         webhooks: props.webhooks,
@@ -84,4 +86,3 @@ export const adyenAdapterClient = (props: AdyenAdapterClientArgs): PaymentAdapte
 }
 
 export type { AdyenAdapterArgs, AdyenAdapterClientArgs } from './types'
-

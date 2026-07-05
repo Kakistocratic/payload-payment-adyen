@@ -22,6 +22,40 @@ import { FormItem } from '@/components/forms/FormItem'
 import { toast } from 'sonner'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 
+const getInitiatePaymentErrorMessage = (error: unknown) => {
+  if (!(error instanceof Error)) {
+    return 'An error occurred while initiating payment.'
+  }
+
+  try {
+    const parsed = JSON.parse(error.message) as {
+      message?: string
+      error?: string
+      cause?: {
+        code?: string
+      }
+    }
+
+    if (parsed?.cause?.code === 'OutOfStock') {
+      return 'One or more items in your cart are out of stock.'
+    }
+
+    if (typeof parsed.error === 'string') {
+      return parsed.error
+    }
+
+    if (typeof parsed.message === 'string') {
+      return parsed.message
+    }
+  } catch {
+    if (error.message) {
+      return error.message
+    }
+  }
+
+  return 'An error occurred while initiating payment.'
+}
+
 export const CheckoutPage: React.FC = () => {
   const { user } = useAuth()
   const router = useRouter()
@@ -71,6 +105,7 @@ export const CheckoutPage: React.FC = () => {
   const initiatePaymentIntent = useCallback(
     async (paymentID: string) => {
       try {
+        setError(null)
         const paymentData = (await initiatePayment(paymentID, {
           additionalData: {
             ...(email ? { customerEmail: email } : {}),
@@ -83,13 +118,7 @@ export const CheckoutPage: React.FC = () => {
           setPaymentData(paymentData)
         }
       } catch (error) {
-        const errorData = error instanceof Error ? JSON.parse(error.message) : {}
-        let errorMessage = 'An error occurred while initiating payment.'
-
-        if (errorData?.cause?.code === 'OutOfStock') {
-          errorMessage = 'One or more items in your cart are out of stock.'
-        }
-
+        const errorMessage = getInitiatePaymentErrorMessage(error)
         setError(errorMessage)
         toast.error(errorMessage)
       }
