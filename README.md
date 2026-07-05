@@ -24,7 +24,6 @@ Implemented:
 
 Not finished:
 
-- Extraction into a standalone npm package.
 - Full live Adyen E2E coverage in CI.
 - Admin UI buttons for capture/refund/cancel. The endpoints exist, but there is not yet a custom Payload admin action UI.
 - Cleanup of unrelated starter TypeScript errors.
@@ -111,6 +110,12 @@ Install dependencies:
 
 ```bash
 pnpm install
+```
+
+Build the local payment package:
+
+```bash
+pnpm build:packages
 ```
 
 Start the app:
@@ -382,7 +387,7 @@ Package docs:
 - `packages/payload-payment-adyen/README.md`
 - `packages/payload-payment-adyen/docs/migrate-from-stripe.md`
 
-The starter consumes the package through workspace imports:
+The starter consumes the package through workspace imports, but those imports now resolve through the package `exports` map and compiled `dist` output:
 
 ```ts
 import { adyenAdapter } from 'payload-payment-adyen'
@@ -392,7 +397,14 @@ import { AdyenCheckoutForm, AdyenRedirectReturn } from 'payload-payment-adyen/re
 
 Remaining package work:
 
-- Add compiled package output for registry publishing instead of source-only workspace/Git installs.
 - Add package-level API tests with mocked Adyen API responses.
 - Decide whether admin capture/refund/cancel should stay endpoint-only or gain optional Payload admin UI components.
 - Keep the adapter aligned with Payload Ecommerce's `PaymentAdapter` contract.
+
+Useful package commands:
+
+```bash
+pnpm --filter payload-payment-adyen build
+pnpm --filter payload-payment-adyen pack:dry
+pnpm --filter payload-payment-adyen pack
+```

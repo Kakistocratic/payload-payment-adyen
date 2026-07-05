@@ -37,12 +37,13 @@ const operationToPspField: Record<ModificationOperation, string> = {
 }
 
 const isAdminUser = (user: PayloadRequest['user']) => {
-  return Boolean(
-    user &&
-      typeof user === 'object' &&
-      Array.isArray((user as { roles?: unknown }).roles) &&
-      (user as { roles: unknown[] }).roles.includes('admin'),
-  )
+  if (!user || typeof user !== 'object') {
+    return false
+  }
+
+  const roles = (user as unknown as { roles?: unknown }).roles
+
+  return Array.isArray(roles) && roles.includes('admin')
 }
 
 const getRouteParam = (req: PayloadRequest, key: string) => {

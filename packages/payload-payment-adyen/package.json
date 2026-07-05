@@ -4,27 +4,35 @@
   "description": "Adyen payment adapter and checkout helpers for Payload Ecommerce.",
   "license": "MIT",
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "pack:dry": "pnpm pack --dry-run",
+    "prepare": "tsup"
+  },
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "import": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     },
     "./client": {
-      "types": "./src/client.ts",
-      "import": "./src/client.ts"
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js"
     },
     "./react": {
-      "types": "./src/react/index.ts",
-      "import": "./src/react/index.ts"
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js"
     },
     "./utilities": {
-      "types": "./src/utilities.ts",
-      "import": "./src/utilities.ts"
-    }
+      "types": "./dist/utilities.d.ts",
+      "import": "./dist/utilities.js"
+    },
+    "./package.json": "./package.json"
   },
   "files": [
-    "src",
+    "dist",
     "docs",
     "README.md"
   ],
@@ -35,5 +43,8 @@
     "payload": "^3.85.0",
     "react": "^19",
     "react-dom": "^19"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1"
   }
 }

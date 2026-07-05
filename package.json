@@ -5,11 +5,12 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "build": "cross-env NODE_OPTIONS=\"--no-deprecation --max-old-space-size=8000\" next build",
-    "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
+    "build": "pnpm build:packages && cross-env NODE_OPTIONS=\"--no-deprecation --max-old-space-size=8000\" next build",
+    "build:packages": "pnpm --filter payload-payment-adyen build",
+    "dev": "pnpm build:packages && cross-env NODE_OPTIONS=--no-deprecation next dev",
     "dev:prod": "cross-env NODE_OPTIONS=--no-deprecation rm -rf .next && pnpm build && pnpm start",
-    "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
-    "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
+    "generate:importmap": "pnpm build:packages && cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
+    "generate:types": "pnpm build:packages && cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
     "ii": "cross-env NODE_OPTIONS=--no-deprecation pnpm --ignore-workspace install",
     "lint": "cross-env NODE_OPTIONS=--no-deprecation eslint .",
     "lint:fix": "cross-env NODE_OPTIONS=--no-deprecation eslint . --fix",
@@ -18,10 +19,10 @@
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start",
     "stripe-webhooks": "stripe listen --forward-to localhost:3000/api/payments/stripe/webhooks",
     "test": "pnpm run test:int && pnpm run test:e2e",
-    "test:e2e": "cross-env NODE_OPTIONS=\"--no-deprecation --import=tsx/esm\" playwright test --config=playwright.config.ts",
-    "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts",
-    "test:int:coverage": "cross-env NODE_OPTIONS=--no-deprecation vitest run --coverage --config ./vitest.config.mts",
-    "test:int:ui": "cross-env NODE_OPTIONS=--no-deprecation vitest --ui --config ./vitest.config.mts"
+    "test:e2e": "pnpm build:packages && cross-env NODE_OPTIONS=\"--no-deprecation --import=tsx/esm\" playwright test --config=playwright.config.ts",
+    "test:int": "pnpm build:packages && cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts",
+    "test:int:coverage": "pnpm build:packages && cross-env NODE_OPTIONS=--no-deprecation vitest run --coverage --config ./vitest.config.mts",
+    "test:int:ui": "pnpm build:packages && cross-env NODE_OPTIONS=--no-deprecation vitest --ui --config ./vitest.config.mts"
   },
   "dependencies": {
     "@adyen/adyen-web": "^6.40.1",

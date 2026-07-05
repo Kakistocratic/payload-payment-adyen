@@ -17,6 +17,7 @@ playwright-report/index.html
 
 # production
 /build
+packages/*/dist/
 
 # misc
 .DS_Store

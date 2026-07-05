@@ -38,7 +38,6 @@ const nextConfig: NextConfig = {
   },
   reactStrictMode: true,
   redirects,
-  transpilePackages: ['payload-payment-adyen'],
   webpack: (webpackConfig) => {
     webpackConfig.resolve.extensionAlias = {
       '.cjs': ['.cts', '.cjs'],
