@@ -64,6 +64,35 @@ Use the official documentation for custom payment adapters as the specification 
 
 https://payloadcms.com/docs/ecommerce/payments
 
+## 3. Adyen API Documentation
+
+Use Adyen's official API and integration documentation as the specification for provider-specific behavior.
+
+The adapter must be compatible with Adyen's documented APIs and must not assume Stripe-style behavior where Adyen uses a different lifecycle.
+
+Primary Adyen references:
+
+- Sessions flow / Checkout API
+- Web Drop-in integration
+- Redirect handling
+- Standard webhooks
+- HMAC webhook verification
+- Test and live environment configuration
+- Currency and minor-unit amount handling
+- Idempotency guidance
+
+Relevant documentation:
+
+- https://docs.adyen.com/online-payments/build-your-integration/sessions-flow/
+- https://docs.adyen.com/online-payments/web-drop-in/
+- https://docs.adyen.com/development-resources/webhooks/
+- https://docs.adyen.com/development-resources/webhooks/secure-webhooks/verify-hmac-signatures/
+- https://docs.adyen.com/development-resources/currency-codes/
+- https://docs.adyen.com/development-resources/api-credentials/
+- https://docs.adyen.com/online-payments/go-live/
+
+Before implementing each payment lifecycle step, verify the expected request shape, response shape, status/result codes, and security requirements against the current Adyen documentation.
+
 ---
 
 ## Development Philosophy
@@ -71,6 +100,7 @@ https://payloadcms.com/docs/ecommerce/payments
 When in doubt:
 
 - Prefer consistency with the Stripe adapter.
+- Prefer Adyen's documented API lifecycle for provider-specific behavior.
 - Keep changes localized to Adyen-specific logic.
 - Avoid modifying Payload Ecommerce internals unless absolutely necessary.
 - Produce reusable code that can later become a standalone plugin with minimal refactoring.
@@ -108,6 +138,8 @@ The adapter should eventually support:
 - Order confirmation
 - Redirect-based payment flows if required
 - Webhooks/callbacks
+- Webhook HMAC signature verification
+- Idempotent handling of duplicate confirmations and duplicate webhook events
 - Proper error handling
 - Sandbox/Test mode
 - Production configuration
@@ -122,15 +154,18 @@ Suggested order:
 
 1. Study the Stripe adapter.
 2. Understand the PaymentAdapter interface.
-3. Create a minimal Adyen adapter that compiles.
-4. Register it in the Ecommerce configuration.
-5. Ensure Payload boots successfully.
-6. Implement payment initiation.
-7. Implement confirmation flow.
-8. Implement webhook handling.
-9. Validate the complete checkout flow.
-10. Add comprehensive tests.
-11. Refactor only after all tests pass.
+3. Study the relevant Adyen API documentation for the intended flow.
+4. Decide and document the initial Adyen flow, preferably Sessions + Web Drop-in unless the API docs indicate a better fit.
+5. Create a minimal Adyen adapter that compiles.
+6. Register it in the Ecommerce configuration.
+7. Ensure Payload boots successfully.
+8. Implement payment initiation.
+9. Implement the frontend Adyen checkout flow.
+10. Implement confirmation flow.
+11. Implement webhook handling and HMAC verification.
+12. Validate the complete checkout flow.
+13. Add comprehensive tests.
+14. Refactor only after all tests pass.
 
 ---
 
@@ -144,9 +179,12 @@ Focus on:
 - Payment initiation
 - Confirmation
 - Webhook processing
+- Webhook signature verification
+- Duplicate webhook and duplicate confirmation handling
 - Error handling
 - Failed payment scenarios
 - Successful payment scenarios
+- Redirect payment scenarios
 
 Mock Adyen APIs where practical.
 

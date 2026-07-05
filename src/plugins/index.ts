@@ -7,6 +7,7 @@ import { ecommercePlugin } from '@payloadcms/plugin-ecommerce'
 
 import { stripeAdapter } from '@payloadcms/plugin-ecommerce/payments/stripe'
 
+import { adyenAdapter } from './adyen'
 import { Page, Product } from '@/payload-types'
 import { getServerSideURL } from '@/utilities/getURL'
 import { ProductsCollection } from '@/collections/Products'
@@ -121,6 +122,14 @@ export const plugins: Plugin[] = [
           secretKey: process.env.STRIPE_SECRET_KEY!,
           publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
           webhookSecret: process.env.STRIPE_WEBHOOKS_SIGNING_SECRET!,
+        }),
+        adyenAdapter({
+          apiKey: process.env.ADYEN_API_KEY!,
+          clientKey: process.env.NEXT_PUBLIC_ADYEN_CLIENT_KEY!,
+          environment: process.env.ADYEN_ENVIRONMENT === 'live' ? 'live' : 'test',
+          hmacKey: process.env.ADYEN_HMAC_KEY,
+          liveEndpointUrlPrefix: process.env.ADYEN_LIVE_ENDPOINT_URL_PREFIX,
+          merchantAccount: process.env.ADYEN_MERCHANT_ACCOUNT!,
         }),
       ],
     },

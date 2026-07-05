@@ -908,10 +908,18 @@ export interface Transaction {
         id?: string | null;
       }[]
     | null;
-  paymentMethod?: 'stripe' | null;
+  paymentMethod?: ('stripe' | 'adyen') | null;
   stripe?: {
     customerID?: string | null;
     paymentIntentID?: string | null;
+  };
+  adyen?: {
+    sessionID?: string | null;
+    merchantReference?: string | null;
+    pspReference?: string | null;
+    resultCode?: string | null;
+    paymentMethod?: string | null;
+    eventCode?: string | null;
   };
   billingAddress?: {
     title?: string | null;
@@ -1720,6 +1728,16 @@ export interface TransactionsSelect<T extends boolean = true> {
     | {
         customerID?: T;
         paymentIntentID?: T;
+      };
+  adyen?:
+    | T
+    | {
+        sessionID?: T;
+        merchantReference?: T;
+        pspReference?: T;
+        resultCode?: T;
+        paymentMethod?: T;
+        eventCode?: T;
       };
   billingAddress?:
     | T

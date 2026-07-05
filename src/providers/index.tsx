@@ -3,6 +3,7 @@ import { EcommerceProvider } from '@payloadcms/plugin-ecommerce/client/react'
 import { stripeAdapterClient } from '@payloadcms/plugin-ecommerce/payments/stripe'
 import React from 'react'
 
+import { adyenAdapterClient } from '@/plugins/adyen'
 import { HeaderThemeProvider } from './HeaderTheme'
 import { ThemeProvider } from './Theme'
 import { SonnerProvider } from '@/providers/Sonner'
@@ -37,6 +38,10 @@ export const Providers: React.FC<{
             paymentMethods={[
               stripeAdapterClient({
                 publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
+              }),
+              adyenAdapterClient({
+                clientKey: process.env.NEXT_PUBLIC_ADYEN_CLIENT_KEY || '',
+                environment: process.env.NEXT_PUBLIC_ADYEN_ENVIRONMENT === 'live' ? 'live' : 'test',
               }),
             ]}
           >
