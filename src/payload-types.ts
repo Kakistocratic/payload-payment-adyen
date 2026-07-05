@@ -918,6 +918,8 @@ export interface Transaction {
     merchantReference?: string | null;
     pspReference?: string | null;
     resultCode?: string | null;
+    sessionResult?: string | null;
+    shopperLocale?: string | null;
     paymentMethod?: string | null;
     eventCode?: string | null;
   };
@@ -1736,6 +1738,8 @@ export interface TransactionsSelect<T extends boolean = true> {
         merchantReference?: T;
         pspReference?: T;
         resultCode?: T;
+        sessionResult?: T;
+        shopperLocale?: T;
         paymentMethod?: T;
         eventCode?: T;
       };

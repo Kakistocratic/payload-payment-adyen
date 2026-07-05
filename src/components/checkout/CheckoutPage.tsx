@@ -106,11 +106,15 @@ export const CheckoutPage: React.FC = () => {
     async (paymentID: string) => {
       try {
         setError(null)
+        const shopperLocale =
+          typeof navigator !== 'undefined' && navigator.language ? navigator.language : 'en-US'
         const paymentData = (await initiatePayment(paymentID, {
           additionalData: {
             ...(email ? { customerEmail: email } : {}),
             billingAddress,
+            countryCode: billingAddress?.country,
             shippingAddress: billingAddressSameAsShipping ? billingAddress : shippingAddress,
+            shopperLocale,
           },
         })) as Record<string, unknown>
 
@@ -123,7 +127,7 @@ export const CheckoutPage: React.FC = () => {
         toast.error(errorMessage)
       }
     },
-    [billingAddress, billingAddressSameAsShipping, shippingAddress],
+    [billingAddress, billingAddressSameAsShipping, email, initiatePayment, shippingAddress],
   )
 
   if (cartIsEmpty && isProcessingPayment) {
@@ -326,7 +330,15 @@ export const CheckoutPage: React.FC = () => {
                 <AdyenCheckoutForm
                   customerEmail={email}
                   billingAddress={billingAddress}
-                  paymentData={paymentData as { id: string; sessionData: string }}
+                  paymentData={
+                    paymentData as {
+                      amount?: { currency: string; value: number }
+                      countryCode?: string
+                      id: string
+                      locale?: string
+                      sessionData: string
+                    }
+                  }
                   setProcessingPayment={setProcessingPayment}
                   shippingAddress={billingAddressSameAsShipping ? billingAddress : shippingAddress}
                 />

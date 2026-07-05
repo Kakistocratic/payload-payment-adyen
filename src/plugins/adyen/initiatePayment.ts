@@ -17,6 +17,20 @@ export const initiatePayment =
     const amount = cart.subtotal
     const billingAddress = data.billingAddress
     const shippingAddress = data.shippingAddress || billingAddress
+    const additionalData = data as typeof data & {
+      countryCode?: unknown
+      shopperLocale?: unknown
+    }
+    const shopperLocale =
+      typeof additionalData.shopperLocale === 'string'
+        ? additionalData.shopperLocale
+        : props.shopperLocale
+    const countryCode =
+      typeof additionalData.countryCode === 'string'
+        ? additionalData.countryCode
+        : typeof billingAddress?.country === 'string'
+          ? billingAddress.country
+          : undefined
 
     if (!apiKey) {
       throw new Error('Adyen API key is required.')
@@ -55,12 +69,12 @@ export const initiatePayment =
             value: amount,
           },
           channel: 'Web',
-          countryCode:
-            typeof billingAddress?.country === 'string' ? billingAddress.country : undefined,
+          countryCode,
           merchantAccount,
           reference: merchantReference,
           returnUrl,
           shopperEmail: customerEmail,
+          shopperLocale,
           shopperReference: getShopperReference(req.user?.id),
         }),
         headers: {
@@ -95,6 +109,7 @@ export const initiatePayment =
           adyen: {
             merchantReference,
             sessionID: session.id,
+            shopperLocale,
           },
           amount,
           billingAddress,
@@ -109,6 +124,12 @@ export const initiatePayment =
 
       return {
         id: session.id,
+        amount: {
+          currency,
+          value: amount,
+        },
+        countryCode,
+        locale: shopperLocale,
         message: 'Payment initiated successfully',
         merchantReference,
         sessionData: session.sessionData,

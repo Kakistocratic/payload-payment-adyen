@@ -33,6 +33,16 @@ export const adyenAdapter = (props: AdyenAdapterArgs): PaymentAdapter => {
       label: 'Adyen Result Code',
     },
     {
+      name: 'sessionResult',
+      type: 'text',
+      label: 'Adyen Session Result',
+    },
+    {
+      name: 'shopperLocale',
+      type: 'text',
+      label: 'Adyen Shopper Locale',
+    },
+    {
       name: 'paymentMethod',
       type: 'text',
       label: 'Adyen Payment Method',

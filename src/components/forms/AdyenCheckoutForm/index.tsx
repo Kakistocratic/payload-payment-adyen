@@ -7,9 +7,19 @@ import { useCart, usePayments } from '@payloadcms/plugin-ecommerce/client/react'
 import { AdyenCheckout, Dropin } from '@adyen/adyen-web/auto'
 import { useRouter } from 'next/navigation'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  removeStoredAdyenCheckoutContext,
+  storeAdyenCheckoutContext,
+} from '@/plugins/adyen/client/checkoutContext'
 
 type AdyenPaymentData = {
+  amount?: {
+    currency: string
+    value: number
+  }
+  countryCode?: string
   id: string
+  locale?: string
   merchantReference?: string
   sessionData: string
 }
@@ -17,9 +27,11 @@ type AdyenPaymentData = {
 type Props = {
   billingAddress?: Partial<Address>
   customerEmail?: string
+  locale?: string
   paymentData: AdyenPaymentData
   setProcessingPayment: React.Dispatch<React.SetStateAction<boolean>>
   shippingAddress?: Partial<Address>
+  translations?: Record<string, Record<string, string>>
 }
 
 type AdyenPaymentResult = {
@@ -36,9 +48,11 @@ const getErrorMessage = (error: unknown) => {
 export const AdyenCheckoutForm: React.FC<Props> = ({
   billingAddress,
   customerEmail,
+  locale: localeFromProps,
   paymentData,
   setProcessingPayment,
   shippingAddress,
+  translations,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const dropinRef = useRef<{ unmount?: () => void } | null>(null)
@@ -58,6 +72,7 @@ export const AdyenCheckoutForm: React.FC<Props> = ({
         additionalData: {
           ...(customerEmail ? { customerEmail } : {}),
           resultCode: result.resultCode,
+          sessionResult: result.sessionResult,
           sessionID: paymentData.id,
           ...(result.pspReference ? { pspReference: result.pspReference } : {}),
           ...(shippingAddress ? { shippingAddress } : {}),
@@ -82,6 +97,7 @@ export const AdyenCheckoutForm: React.FC<Props> = ({
         }
 
         clearCart()
+        removeStoredAdyenCheckoutContext(paymentData.id)
 
         const queryString = queryParams.toString()
         router.push(`/orders/${confirmResult.orderID}${queryString ? `?${queryString}` : ''}`)
@@ -104,6 +120,7 @@ export const AdyenCheckoutForm: React.FC<Props> = ({
           paymentMethod: result.paymentMethod,
           pspReference: result.pspReference,
           resultCode: result.resultCode,
+          sessionResult: result.sessionResult,
           sessionID: paymentData.id,
         }),
         credentials: 'include',
@@ -130,10 +147,23 @@ export const AdyenCheckoutForm: React.FC<Props> = ({
       setIsLoading(true)
 
       try {
+        const locale =
+          paymentData.locale ||
+          localeFromProps ||
+          (typeof navigator !== 'undefined' && navigator.language ? navigator.language : 'en-US')
+
+        storeAdyenCheckoutContext(paymentData.id, {
+          ...(customerEmail ? { customerEmail } : {}),
+          locale,
+          ...(shippingAddress ? { shippingAddress } : {}),
+        })
+
         const checkout = await AdyenCheckout({
+          ...(paymentData.amount ? { amount: paymentData.amount } : {}),
           clientKey: process.env.NEXT_PUBLIC_ADYEN_CLIENT_KEY || '',
-          countryCode: billingAddress?.country || 'US',
+          countryCode: paymentData.countryCode || billingAddress?.country || 'US',
           environment: process.env.NEXT_PUBLIC_ADYEN_ENVIRONMENT === 'live' ? 'live' : 'test',
+          locale,
           onError: (error) => {
             setError(
               error?.name === 'NETWORK_ERROR'
@@ -169,6 +199,7 @@ export const AdyenCheckoutForm: React.FC<Props> = ({
             id: paymentData.id,
             sessionData: paymentData.sessionData,
           },
+          ...(translations ? { translations } : {}),
         })
 
         if (isCancelled || !containerRef.current) {
@@ -204,10 +235,17 @@ export const AdyenCheckoutForm: React.FC<Props> = ({
   }, [
     billingAddress?.country,
     handleConfirmedOrder,
+    customerEmail,
+    localeFromProps,
+    paymentData.amount,
+    paymentData.countryCode,
     paymentData.id,
+    paymentData.locale,
     paymentData.sessionData,
     recordPaymentOutcome,
     setProcessingPayment,
+    shippingAddress,
+    translations,
   ])
 
   return (

@@ -15,6 +15,7 @@ export type AdyenAdapterArgs = {
   liveEndpointUrlPrefix?: string
   merchantAccount: string
   returnURL?: string
+  shopperLocale?: string
   webhooks?: AdyenWebhookHandlers
 } & PaymentAdapterArgs
 
@@ -32,6 +33,7 @@ export type AdyenSessionResponse = {
   id: string
   sessionData: string
   amount?: AdyenAmount
+  countryCode?: string
   expiresAt?: string
   merchantAccount?: string
   reference?: string
@@ -64,4 +66,3 @@ export type AdyenWebhookHandler = (args: {
 export type AdyenWebhookHandlers = {
   [eventCode: string]: AdyenWebhookHandler
 }
-

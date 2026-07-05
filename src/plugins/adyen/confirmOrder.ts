@@ -20,6 +20,7 @@ export const confirmOrder =
     const sessionID = data.sessionID
     const resultCode = data.resultCode
     const pspReference = data.pspReference
+    const sessionResult = data.sessionResult
 
     if (!sessionID || typeof sessionID !== 'string') {
       throw new Error('Adyen session ID is required.')
@@ -107,6 +108,7 @@ export const confirmOrder =
             ...(transaction.adyen || {}),
             pspReference,
             resultCode,
+            sessionResult,
           },
           order: order.id,
           status: 'succeeded',

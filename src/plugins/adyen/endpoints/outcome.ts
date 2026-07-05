@@ -6,6 +6,7 @@ type AdyenOutcomeBody = {
   paymentMethod?: string
   pspReference?: string
   resultCode?: string
+  sessionResult?: string
   sessionID?: string
 }
 
@@ -73,6 +74,7 @@ export const outcomeEndpoint = (): Endpoint => {
               paymentMethod: data?.paymentMethod,
               pspReference: data?.pspReference,
               resultCode,
+              sessionResult: data?.sessionResult,
             },
             status,
           },
@@ -103,4 +105,3 @@ export const outcomeEndpoint = (): Endpoint => {
     path: '/outcome',
   }
 }
-
