@@ -2,6 +2,8 @@
 
 This guide is for existing Payload Ecommerce projects that use the Stripe adapter and want to move checkout traffic to Adyen.
 
+For the exact fresh Payload Ecommerce Starter replacement flow validated from a packed dependency install, see [Payload Ecommerce Starter Migration Example](payload-ecommerce-starter.md).
+
 The safest production migration is phased:
 
 1. Add Adyen while keeping Stripe.

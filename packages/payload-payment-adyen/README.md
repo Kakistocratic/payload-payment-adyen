@@ -148,4 +148,5 @@ The capture/refund/cancel endpoints are admin-only and asynchronous. Adyen webho
 
 ## Migration
 
-See [docs/migrate-from-stripe.md](docs/migrate-from-stripe.md).
+- [Migrate from Stripe](docs/migrate-from-stripe.md)
+- [Payload Ecommerce Starter migration example](docs/payload-ecommerce-starter.md)
