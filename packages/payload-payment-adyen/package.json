@@ -12,13 +12,13 @@
     "payments",
     "checkout"
   ],
-  "homepage": "https://github.com/Kakistocratic/adyen-tester/tree/main/packages/payload-payment-adyen#readme",
+  "homepage": "https://github.com/Kakistocratic/payload-payment-adyen/tree/master/packages/payload-payment-adyen#readme",
   "bugs": {
-    "url": "https://github.com/Kakistocratic/adyen-tester/issues"
+    "url": "https://github.com/Kakistocratic/payload-payment-adyen/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Kakistocratic/adyen-tester.git",
+    "url": "git+https://github.com/Kakistocratic/payload-payment-adyen.git",
     "directory": "packages/payload-payment-adyen"
   },
   "main": "./dist/index.js",
