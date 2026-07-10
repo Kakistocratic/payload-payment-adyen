@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Typecheck and test
+    runs-on: ubuntu-latest
+
+    env:
+      ADYEN_API_KEY: ci_adyen_api_key
+      ADYEN_ENVIRONMENT: test
+      ADYEN_FORCE_REDIRECT_3DS: 'false'
+      ADYEN_HMAC_KEY: ci_adyen_hmac_key
+      ADYEN_MERCHANT_ACCOUNT: ci_merchant
+      DATABASE_URL: file:./adyen-tester.db
+      NEXT_PUBLIC_ADYEN_CLIENT_KEY: ci_adyen_client_key
+      NEXT_PUBLIC_ADYEN_ENVIRONMENT: test
+      NEXT_PUBLIC_SERVER_URL: http://localhost:3000
+      PAYLOAD_PUBLIC_SERVER_URL: http://localhost:3000
+      PAYLOAD_SECRET: ci-payload-secret
+      PREVIEW_SECRET: ci-preview-secret
+      STRIPE_SECRET_KEY: sk_test_ci
+      STRIPE_WEBHOOKS_SIGNING_SECRET: whsec_ci
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Payload types
+        run: pnpm generate:types
+
+      - name: Generate Payload import map
+        run: pnpm generate:importmap
+
+      - name: Typecheck
+        run: pnpm exec tsc --noEmit --pretty false
+
+      - name: Run integration tests
+        run: pnpm test:int
+
+      - name: Dry pack package
+        run: pnpm --filter payload-payment-adyen pack:dry

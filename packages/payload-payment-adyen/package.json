@@ -4,6 +4,23 @@
   "description": "Adyen payment adapter and checkout helpers for Payload Ecommerce.",
   "license": "MIT",
   "type": "module",
+  "keywords": [
+    "payload",
+    "payloadcms",
+    "payload-ecommerce",
+    "adyen",
+    "payments",
+    "checkout"
+  ],
+  "homepage": "https://github.com/Kakistocratic/adyen-tester/tree/main/packages/payload-payment-adyen#readme",
+  "bugs": {
+    "url": "https://github.com/Kakistocratic/adyen-tester/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kakistocratic/adyen-tester.git",
+    "directory": "packages/payload-payment-adyen"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
@@ -39,6 +56,12 @@
     "docs",
     "README.md"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": "^18.20.2 || >=20.9.0"
+  },
   "peerDependencies": {
     "@adyen/adyen-web": "^6.40.0",
     "@payloadcms/plugin-ecommerce": "^3.85.0",
