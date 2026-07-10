@@ -25,7 +25,7 @@ pnpm add payload-payment-adyen @adyen/adyen-web
 For local package testing before publishing:
 
 ```bash
-pnpm add ./path/to/payload-payment-adyen-0.1.0.tgz @adyen/adyen-web
+pnpm add ./path/to/payload-payment-adyen-0.8.0.tgz @adyen/adyen-web
 ```
 
 ## Environment

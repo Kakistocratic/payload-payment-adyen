@@ -22,7 +22,7 @@ Before registry publishing, install a packed tarball from this repo:
 
 ```bash
 pnpm --filter payload-payment-adyen pack
-pnpm add ./path/to/payload-payment-adyen-0.1.0.tgz @adyen/adyen-web
+pnpm add ./path/to/payload-payment-adyen-0.8.0.tgz @adyen/adyen-web
 ```
 
 The package exports compiled ESM, so a normal app install should not need `transpilePackages`.

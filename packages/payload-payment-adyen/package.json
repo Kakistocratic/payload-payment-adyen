@@ -1,6 +1,6 @@
 {
   "name": "payload-payment-adyen",
-  "version": "0.1.0",
+  "version": "0.8.0",
   "description": "Adyen payment adapter and checkout helpers for Payload Ecommerce.",
   "license": "MIT",
   "type": "module",
