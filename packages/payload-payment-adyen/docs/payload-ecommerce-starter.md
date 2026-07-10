@@ -2,7 +2,7 @@
 
 This guide shows the concrete changes needed to replace the default Stripe checkout in a fresh Payload Ecommerce Starter with `payload-payment-adyen`.
 
-It was validated against a clean starter by installing the packed package tarball, wiring the compiled exports, running checkout, and regenerating Payload types. Use this as the source example before building an automated migrate script.
+It was validated against clean starters by installing the package, wiring the compiled exports, running checkout, and regenerating Payload types.
 
 ## Scope
 
@@ -22,10 +22,10 @@ For a production migration with historical Stripe transactions, keep Stripe regi
 pnpm add payload-payment-adyen @adyen/adyen-web
 ```
 
-For local package testing before publishing:
+For local package development, you can test a packed tarball instead:
 
 ```bash
-pnpm add ./path/to/payload-payment-adyen-0.8.0.tgz @adyen/adyen-web
+pnpm add ./path/to/payload-payment-adyen-0.8.1.tgz @adyen/adyen-web
 ```
 
 ## Environment

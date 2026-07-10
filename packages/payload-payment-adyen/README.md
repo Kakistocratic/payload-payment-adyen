@@ -6,42 +6,13 @@ This package is developed inside a Payload Ecommerce Starter so it can be tested
 
 ## Install
 
-Workspace development:
-
-```bash
-pnpm add payload-payment-adyen@workspace:*
-```
-
-Registry install after publishing:
+Install the package and Adyen Web in a Payload Ecommerce app:
 
 ```bash
 pnpm add payload-payment-adyen @adyen/adyen-web
 ```
 
-Packed tarball install before registry publishing:
-
-```bash
-pnpm --filter payload-payment-adyen pack
-pnpm add ./path/to/payload-payment-adyen-0.8.0.tgz @adyen/adyen-web
-```
-
-The package exports compiled ESM from `dist`, so consuming apps should not need `transpilePackages` for normal registry or tarball installs.
-
-## Package Build
-
-Build the package:
-
-```bash
-pnpm --filter payload-payment-adyen build
-```
-
-Check what would be published:
-
-```bash
-pnpm --filter payload-payment-adyen pack:dry
-```
-
-The package publishes only `dist`, `docs`, `README.md`, and `package.json`.
+The package exports compiled ESM from `dist`, so consuming apps should not need `transpilePackages` for normal registry installs.
 
 ## Starter Migration CLI
 
@@ -61,6 +32,37 @@ pnpm generate:types
 ```
 
 The script detects the known starter layout, adds Adyen env vars and CSS, patches the server/client adapter wiring, patches known Stripe-specific checkout sections in place, and with `--remove-stripe` converts known Stripe seed transactions to Adyen seed transactions. See [docs/payload-ecommerce-starter.md](docs/payload-ecommerce-starter.md).
+
+## Package Development
+
+This package is developed inside a Payload Ecommerce Starter so it can be tested against a real storefront while remaining installable as a standalone package.
+
+Workspace development from this repository:
+
+```bash
+pnpm add payload-payment-adyen@workspace:*
+```
+
+Local tarball testing:
+
+```bash
+pnpm --filter payload-payment-adyen pack
+pnpm add ./path/to/payload-payment-adyen-0.8.1.tgz @adyen/adyen-web
+```
+
+Build the package:
+
+```bash
+pnpm --filter payload-payment-adyen build
+```
+
+Check what would be published:
+
+```bash
+pnpm --filter payload-payment-adyen pack:dry
+```
+
+The package publishes only `dist`, `docs`, `README.md`, and `package.json`.
 
 ## Server Adapter
 

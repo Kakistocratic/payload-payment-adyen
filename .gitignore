@@ -19,6 +19,7 @@ playwright-report/index.html
 /build
 packages/*/dist/
 *.tgz
+*.db
 .tmp/
 
 # misc

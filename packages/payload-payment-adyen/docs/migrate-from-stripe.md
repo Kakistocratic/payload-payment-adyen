@@ -2,7 +2,7 @@
 
 This guide is for existing Payload Ecommerce projects that use the Stripe adapter and want to move checkout traffic to Adyen.
 
-For the exact fresh Payload Ecommerce Starter replacement flow validated from a packed dependency install, see [Payload Ecommerce Starter Migration Example](payload-ecommerce-starter.md).
+For the exact fresh Payload Ecommerce Starter replacement flow, see [Payload Ecommerce Starter Migration Example](payload-ecommerce-starter.md).
 
 The safest production migration is phased:
 
@@ -18,11 +18,11 @@ The safest production migration is phased:
 pnpm add payload-payment-adyen @adyen/adyen-web
 ```
 
-Before registry publishing, install a packed tarball from this repo:
+For local package development, you can test a packed tarball instead:
 
 ```bash
 pnpm --filter payload-payment-adyen pack
-pnpm add ./path/to/payload-payment-adyen-0.8.0.tgz @adyen/adyen-web
+pnpm add ./path/to/payload-payment-adyen-0.8.1.tgz @adyen/adyen-web
 ```
 
 The package exports compiled ESM, so a normal app install should not need `transpilePackages`.
