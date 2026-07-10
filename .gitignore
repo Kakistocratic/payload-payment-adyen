@@ -18,6 +18,8 @@ playwright-report/index.html
 # production
 /build
 packages/*/dist/
+*.tgz
+.tmp/
 
 # misc
 .DS_Store

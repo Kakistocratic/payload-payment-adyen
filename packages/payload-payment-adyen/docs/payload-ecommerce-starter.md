@@ -282,11 +282,27 @@ Before turning this into an automated migration script, verify manually:
 
 ## Automation Notes
 
-A future `init` or `migrate-starter` script should be based on these examples, not on assumptions about arbitrary app structure. Keep the first version narrow:
+The package includes a narrow `migrate-starter` CLI based on these examples:
+
+```bash
+pnpm exec payload-payment-adyen migrate-starter --dry-run
+pnpm exec payload-payment-adyen migrate-starter
+```
+
+For a fresh starter where Stripe should be removed:
+
+```bash
+pnpm exec payload-payment-adyen migrate-starter --remove-stripe
+pnpm install
+pnpm generate:types
+```
+
+The script is based on these examples, not on assumptions about arbitrary app structure. Keep it narrow:
 
 - Detect a Payload Ecommerce Starter layout.
 - Replace known Stripe imports and adapter calls.
 - Add Adyen env vars without overwriting existing local secrets.
-- Replace the known starter checkout and redirect-return components.
+- Patch known Stripe-specific checkout and redirect-return sections in place.
 - Remove Stripe dependencies only when the user explicitly chooses a fresh-starter replacement mode.
+- Convert known starter Stripe seed transactions to Adyen seed transactions in fresh-starter replacement mode.
 - Run `payload generate:types` after schema changes.

@@ -43,6 +43,25 @@ pnpm --filter payload-payment-adyen pack:dry
 
 The package publishes only `dist`, `docs`, `README.md`, and `package.json`.
 
+## Starter Migration CLI
+
+For a fresh Payload Ecommerce Starter, run the migration helper from the target project:
+
+```bash
+pnpm exec payload-payment-adyen migrate-starter --dry-run
+pnpm exec payload-payment-adyen migrate-starter
+```
+
+Use `--remove-stripe` only when the project is a fresh starter and you do not need Stripe for historical transactions:
+
+```bash
+pnpm exec payload-payment-adyen migrate-starter --remove-stripe
+pnpm install
+pnpm generate:types
+```
+
+The script detects the known starter layout, adds Adyen env vars and CSS, patches the server/client adapter wiring, patches known Stripe-specific checkout sections in place, and with `--remove-stripe` converts known Stripe seed transactions to Adyen seed transactions. See [docs/payload-ecommerce-starter.md](docs/payload-ecommerce-starter.md).
+
 ## Server Adapter
 
 ```ts

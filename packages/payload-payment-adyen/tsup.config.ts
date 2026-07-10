@@ -19,6 +19,7 @@ export default defineConfig({
   clean: true,
   dts: true,
   entry: {
+    'bin/migrate-starter': 'src/bin/migrate-starter.ts',
     client: 'src/client.ts',
     index: 'src/index.ts',
     'react/index': 'src/react/index.ts',

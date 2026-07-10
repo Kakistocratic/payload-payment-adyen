@@ -6,6 +6,9 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "payload-payment-adyen": "./dist/bin/migrate-starter.js"
+  },
   "sideEffects": false,
   "scripts": {
     "build": "tsup",
