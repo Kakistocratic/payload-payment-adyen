@@ -10,6 +10,14 @@ type AdyenWebhookBody = {
   }>
 }
 
+type EndpointRequest = Parameters<Endpoint['handler']>[0]
+
+type FindTransactionResult = {
+  checkoutSessionID?: string
+  merchantReference?: string
+  transaction?: Record<string, any>
+}
+
 const getStatusFromNotification = (notification: AdyenNotificationRequestItem) => {
   if (notification.eventCode === 'AUTHORISATION') {
     return notification.success === 'true' ? 'succeeded' : 'failed'
@@ -27,6 +35,51 @@ const getStatusFromNotification = (notification: AdyenNotificationRequestItem) =
   }
 
   return undefined
+}
+
+const getWebhookEventKey = (notification: AdyenNotificationRequestItem) => {
+  if (!notification.eventCode || !notification.pspReference) {
+    return undefined
+  }
+
+  return `${notification.eventCode}:${notification.pspReference}`
+}
+
+const getProcessedWebhookEvents = (transaction?: Record<string, any>) => {
+  const webhookEvents = transaction?.adyen?.webhookEvents
+
+  return Array.isArray(webhookEvents) ? webhookEvents : []
+}
+
+const hasProcessedWebhookEvent = ({
+  eventKey,
+  transaction,
+}: {
+  eventKey?: string
+  transaction?: Record<string, any>
+}) => {
+  if (!eventKey) {
+    return false
+  }
+
+  return getProcessedWebhookEvents(transaction).some((event) => event?.key === eventKey)
+}
+
+const getWebhookEventRecord = ({
+  eventKey,
+  notification,
+}: {
+  eventKey: string
+  notification: AdyenNotificationRequestItem
+}) => {
+  return {
+    eventCode: notification.eventCode,
+    key: eventKey,
+    originalReference: notification.originalReference,
+    processedAt: new Date().toISOString(),
+    pspReference: notification.pspReference,
+    success: notification.success,
+  }
 }
 
 const getModificationPspField = (eventCode?: string) => {
@@ -50,7 +103,7 @@ const updateRelatedOrderStatus = async ({
   status,
   transaction,
 }: {
-  req: Parameters<Endpoint['handler']>[0]
+  req: EndpointRequest
   status?: string
   transaction: Record<string, any>
 }) => {
@@ -75,13 +128,13 @@ const updateRelatedOrderStatus = async ({
   })
 }
 
-const reconcileTransaction = async ({
+const findTransactionForNotification = async ({
   notification,
   req,
 }: {
   notification: AdyenNotificationRequestItem
-  req: Parameters<Endpoint['handler']>[0]
-}) => {
+  req: EndpointRequest
+}): Promise<FindTransactionResult> => {
   const merchantReference = notification.merchantReference
   const checkoutSessionID =
     typeof notification.additionalData?.checkoutSessionId === 'string'
@@ -128,7 +181,10 @@ const reconcileTransaction = async ({
   ]
 
   if (or.length === 0) {
-    return
+    return {
+      checkoutSessionID,
+      merchantReference,
+    }
   }
 
   const transactions = await (req.payload as any).find({
@@ -150,9 +206,69 @@ const reconcileTransaction = async ({
       msg: 'No transaction found for Adyen webhook',
       pspReference: notification.pspReference,
     })
+  }
+
+  return {
+    checkoutSessionID,
+    merchantReference,
+    transaction,
+  }
+}
+
+const markWebhookEventProcessed = async ({
+  eventKey,
+  notification,
+  req,
+  transaction,
+}: {
+  eventKey: string
+  notification: AdyenNotificationRequestItem
+  req: EndpointRequest
+  transaction: Record<string, any>
+}) => {
+  const currentTransaction = (await (req.payload as any).findByID({
+    id: transaction.id,
+    collection: 'transactions',
+    depth: 0,
+    req,
+  })) as Record<string, any> | null
+
+  const resolvedTransaction = currentTransaction || transaction
+
+  if (hasProcessedWebhookEvent({ eventKey, transaction: resolvedTransaction })) {
     return
   }
 
+  await (req.payload as any).update({
+    id: transaction.id,
+    collection: 'transactions',
+    data: {
+      adyen: {
+        ...(resolvedTransaction.adyen || {}),
+        webhookEvents: [
+          ...getProcessedWebhookEvents(resolvedTransaction),
+          getWebhookEventRecord({
+            eventKey,
+            notification,
+          }),
+        ],
+      },
+    },
+    req,
+  })
+}
+
+const reconcileTransaction = async ({
+  checkoutSessionID,
+  notification,
+  req,
+  transaction,
+}: {
+  checkoutSessionID?: string
+  notification: AdyenNotificationRequestItem
+  req: EndpointRequest
+  transaction: Record<string, any>
+}) => {
   const status = getStatusFromNotification(notification)
   const modificationPspField = getModificationPspField(notification.eventCode)
 
@@ -244,16 +360,43 @@ export const webhooksEndpoint = ({
           }
 
           const handler = notification.eventCode ? webhooks?.[notification.eventCode] : undefined
-
-          await reconcileTransaction({
+          const eventKey = getWebhookEventKey(notification)
+          const { checkoutSessionID, transaction } = await findTransactionForNotification({
             notification,
             req,
           })
+
+          if (hasProcessedWebhookEvent({ eventKey, transaction })) {
+            req.payload.logger.info({
+              eventCode: notification.eventCode,
+              msg: 'Skipping duplicate Adyen webhook event',
+              pspReference: notification.pspReference,
+            })
+            continue
+          }
+
+          if (transaction) {
+            await reconcileTransaction({
+              checkoutSessionID,
+              notification,
+              req,
+              transaction,
+            })
+          }
 
           if (handler) {
             await handler({
               notification,
               req,
+            })
+          }
+
+          if (eventKey && transaction) {
+            await markWebhookEventProcessed({
+              eventKey,
+              notification,
+              req,
+              transaction,
             })
           }
         }

@@ -91,6 +91,41 @@ export const adyenAdapter = (props: AdyenAdapterArgs): PaymentAdapter => {
       type: 'text',
       label: 'Adyen Modification Reason',
     },
+    {
+      name: 'webhookEvents',
+      type: 'array',
+      label: 'Adyen Processed Webhook Events',
+      admin: {
+        hidden: true,
+      },
+      fields: [
+        {
+          name: 'key',
+          type: 'text',
+          required: true,
+        },
+        {
+          name: 'eventCode',
+          type: 'text',
+        },
+        {
+          name: 'pspReference',
+          type: 'text',
+        },
+        {
+          name: 'originalReference',
+          type: 'text',
+        },
+        {
+          name: 'success',
+          type: 'text',
+        },
+        {
+          name: 'processedAt',
+          type: 'date',
+        },
+      ],
+    },
   ]
 
   const group: GroupField = {

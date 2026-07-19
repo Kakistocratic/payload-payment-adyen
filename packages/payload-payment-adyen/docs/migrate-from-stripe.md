@@ -12,6 +12,19 @@ The safest production migration is phased:
 4. Deploy Adyen checkout.
 5. Keep Stripe available for historical transactions, refunds, disputes, and reconciliation until you are ready to remove it.
 
+## Live Store Migration Limits
+
+This package does not migrate live Stripe payment state. The migration examples and `migrate-starter` CLI are aimed at starter checkout wiring, fresh installs, and dev/staging replacement flows.
+
+Not included or supported:
+
+- In-flight Stripe PaymentIntents or Stripe Checkout Sessions already created for existing carts.
+- Browser return flows for shoppers who started checkout on Stripe before the provider switch.
+- Stored Stripe payment methods, saved cards, customer vault tokens, mandates, or subscriptions.
+- Provider-side Stripe history for refunds, disputes, reconciliation, or chargeback workflows.
+
+Payload carts and transactions can remain in your database, but provider payment state is not portable. A live store should keep Stripe available for old/in-flight records while routing only new checkout attempts to Adyen. Stored payment method migration, if needed, requires a separate provider-approved token migration process and is outside this package.
+
 ## 1. Install
 
 ```bash
@@ -168,6 +181,8 @@ https://your-domain.example.com/api/payments/adyen/webhooks
 ```
 
 Enable HMAC signing and put the HMAC key in `ADYEN_HMAC_KEY`.
+
+When `ADYEN_HMAC_KEY` is configured, the adapter verifies Standard webhook HMAC signatures before processing notifications. It also records processed webhook events on the transaction as `eventCode:pspReference` keys and skips duplicate notifications before reconciliation or custom webhook handlers run.
 
 For local testing, expose your dev server with a tunnel and use the public tunnel URL in Adyen.
 

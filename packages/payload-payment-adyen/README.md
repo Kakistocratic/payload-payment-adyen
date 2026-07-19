@@ -167,7 +167,15 @@ The adapter registers:
 
 The capture/refund/cancel endpoints are admin-only and asynchronous. Adyen webhooks remain the source of truth for final operation status.
 
+## Webhook Security And Idempotency
+
+When `hmacKey` is configured, Standard webhook notifications are verified with Adyen HMAC validation before they are processed.
+
+Processed webhook events are recorded on the related transaction under `adyen.webhookEvents` using `eventCode:pspReference` as the idempotency key. Duplicate notifications for an already-recorded key are skipped before transaction reconciliation or custom webhook handlers run. This covers normal Adyen retry delivery and duplicate notification batches. As with any webhook processor, database-level transaction isolation still determines how strongly concurrent duplicate deliveries are serialized.
+
 ## Migration
 
 - [Migrate from Stripe](docs/migrate-from-stripe.md)
 - [Payload Ecommerce Starter migration example](docs/payload-ecommerce-starter.md)
+
+The migration examples and CLI do not migrate in-flight Stripe PaymentIntents, Stripe Checkout Sessions, stored Stripe payment methods, saved cards, mandates, subscriptions, refunds, disputes, or reconciliation history. Keep Stripe available for old/live payment state during a production migration.

@@ -1,13 +1,13 @@
 import type { Metadata } from 'next'
 
 import { mergeOpenGraph } from '@/utilities/mergeOpenGraph'
-import React, { Fragment } from 'react'
+import { Fragment } from 'react'
 
 import { CheckoutPage } from '@/components/checkout/CheckoutPage'
 
 export default function Checkout() {
   return (
-    <div className="container min-h-[90vh] flex">
+    <div className="mx-auto flex min-h-[90vh] w-full max-w-7xl px-4 md:px-8">
       {!process.env.NEXT_PUBLIC_ADYEN_CLIENT_KEY && (
         <div>
           <Fragment>

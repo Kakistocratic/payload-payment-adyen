@@ -16,6 +16,12 @@ This example assumes a fresh Payload Ecommerce Starter that still uses the defau
 
 For a production migration with historical Stripe transactions, keep Stripe registered until you have a retention plan. For a fresh starter, replacing Stripe fully is reasonable.
 
+## Not A Live Store Migration Tool
+
+This guide and the `migrate-starter` CLI do not migrate live Stripe payment state. They do not handle in-flight Stripe PaymentIntents, Stripe Checkout Sessions, stored Stripe payment methods, saved cards, customer vault tokens, mandates, subscriptions, refunds, disputes, or reconciliation history.
+
+Payload carts and transactions are application records and can stay in place, but Stripe payment credentials and active Stripe payment sessions are provider-specific. For live stores, keep Stripe available for old and in-flight records, switch only new checkout creation to Adyen, and plan any stored payment method migration separately with the payment providers.
+
 ## Install
 
 ```bash
@@ -278,6 +284,7 @@ Before turning this into an automated migration script, verify manually:
 - Redirect payment methods return through `AdyenRedirectReturn` and create exactly one order.
 - Refused payments show an error and record outcome where possible.
 - `/api/payments/adyen/webhooks` accepts signed Adyen Standard webhook events.
+- Duplicate Adyen webhook notifications with the same `eventCode:pspReference` are skipped.
 - `pnpm run generate:types` reflects the Adyen transaction schema.
 
 ## Automation Notes
