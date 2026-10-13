@@ -30,7 +30,7 @@
     "@payloadcms/db-sqlite": "3.85.2",
     "@payloadcms/email-nodemailer": "3.85.2",
     "@payloadcms/live-preview-react": "3.85.2",
-    "@payloadcms/next": "3.85.2",
+    "@payloadcms/next": "3.88.0",
     "@payloadcms/plugin-ecommerce": "3.85.2",
     "@payloadcms/plugin-form-builder": "3.85.2",
     "@payloadcms/plugin-seo": "3.85.2",
