@@ -27,7 +27,7 @@
   "dependencies": {
     "@adyen/adyen-web": "^6.40.1",
     "@payloadcms/admin-bar": "3.85.2",
-    "@payloadcms/db-sqlite": "3.85.2",
+    "@payloadcms/db-sqlite": "3.90.0",
     "@payloadcms/email-nodemailer": "3.85.2",
     "@payloadcms/live-preview-react": "3.85.2",
     "@payloadcms/next": "3.85.2",
